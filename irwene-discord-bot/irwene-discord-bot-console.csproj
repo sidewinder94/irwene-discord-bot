@@ -6,4 +6,8 @@
     <RootNamespace>irwene_discord_bot</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DiscordBot.Service\DiscordBot.Service.csproj" />
+  </ItemGroup>
+
 </Project>

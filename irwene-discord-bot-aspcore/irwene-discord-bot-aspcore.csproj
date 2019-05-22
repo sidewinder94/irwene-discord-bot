@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DiscordBot.Service\DiscordBot.Service.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
-using irwene_discord_bot_aspcore.Services;
+using DiscordBot.Service;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -32,16 +32,19 @@ namespace irwene_discord_bot_aspcore
                 builder.AddBlobServiceClient(Configuration["ConnectionStrings:AzureStorage"]);
             });
 
-            services.AddSingleton<DiscordBotServices>();
+            services.AddSingleton<DiscordService>();
 
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
         {
+            var service = app.ApplicationServices.GetService<DiscordService>();
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                service.Start();
             }
             else
             {
@@ -61,11 +64,14 @@ namespace irwene_discord_bot_aspcore
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
-                //endpoints.MapControllerRoute(
-                //    name: "Test",
-                //    pattern:"{controller=Home}");
-
             });
+
+            applicationLifetime.ApplicationStopping.Register(() => this.Shutdown(service));
+        }
+
+        private void Shutdown(DiscordService service)
+        {
+            service.Stop();
         }
     }
 }

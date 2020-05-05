@@ -1,0 +1,41 @@
+﻿using Discord;
+using Microsoft.Azure.Cosmos.Table;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace DiscordBot.Service.Model
+{
+    public class RoleAssignation : TableEntity
+    {
+        public RoleAssignation()
+        {
+        }
+
+        public RoleAssignation(Guild guild)
+        {
+            this.RowKey = Guid.NewGuid().ToString();
+            this.PartitionKey = guild.Id;
+        }
+
+        private IRole targetRole;
+
+        public string GameName { get; set; }
+
+        public ulong RoleId { private set; get; }
+        
+        [IgnoreProperty]
+        [Parent(parentType: typeof(Guild))]
+        public Guild Guild { get; set; }
+
+        [IgnoreProperty]
+        public IRole Role { 
+            get => this.targetRole;
+            set
+            {
+                this.targetRole = value;
+                this.RoleId = value.Id;
+            }
+        }
+    }
+}

@@ -1,25 +1,22 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace irwene_discord_bot_aspcore.Models
+namespace DiscordBot.Service.Model
 {
-    public class GuildEntity : TableEntity 
+    public class Guild : TableEntity 
     {
         [Obsolete("Exists only for technical reasons", true)]
-        public GuildEntity()
+        public Guild()
         {
         }
 
-        public GuildEntity(string guildId)
+        public Guild(string guildId)
         {
             this.RowKey = guildId;
 
             //All guilds should stays in the same partitions
-            this.PartitionKey = typeof(GuildEntity).Name;
+            this.PartitionKey = typeof(Guild).Name;
         }
 
         public string Id
@@ -30,6 +27,6 @@ namespace irwene_discord_bot_aspcore.Models
         public string Name { get; set; }
 
         [IgnoreProperty]
-        public Collection<string> Dependents { get; set; }
+        public ICollection<RoleAssignation> RolesAssignation { get; set; }
     }
 }

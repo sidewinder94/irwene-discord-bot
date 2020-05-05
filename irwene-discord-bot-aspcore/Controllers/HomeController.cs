@@ -7,8 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using irwene_discord_bot_aspcore.Models;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Table;
+using Microsoft.Azure.Cosmos.Table;
 
 namespace irwene_discord_bot_aspcore.Controllers
 {
@@ -29,7 +28,7 @@ namespace irwene_discord_bot_aspcore.Controllers
         }
 
 
-        private async Task<IActionResult> CreateTable()
+        public async Task<IActionResult> CreateTable()
         {
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(_configuration["secret-azure-tables"]);
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
@@ -42,7 +41,7 @@ namespace irwene_discord_bot_aspcore.Controllers
                 Name = "Irwene"
             };
 
-            var operation = TableOperation.Insert(entity);
+            var operation = TableOperation.InsertOrReplace(entity);
 
             var result = await table.ExecuteAsync(operation);
 

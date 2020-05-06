@@ -30,24 +30,24 @@ namespace irwene_discord_bot_aspcore.Controllers
 
         public async Task<IActionResult> CreateTable()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(_configuration["secret-azure-tables"]);
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("Guild");
-            ViewBag.Success = await table.CreateIfNotExistsAsync();
-            ViewBag.TableName = table.Name;
+            //CloudStorageAccount storageAccount = CloudStorageAccount.Parse(_configuration["secret-azure-tables"]);
+            //CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            //CloudTable table = tableClient.GetTableReference("Guild");
+            //ViewBag.Success = await table.CreateIfNotExistsAsync();
+            //ViewBag.TableName = table.Name;
 
-            var entity = new GuildEntity(Guid.NewGuid().ToString())
-            {
-                Name = "Irwene"
-            };
+            //var entity = new GuildEntity(Guid.NewGuid().ToString())
+            //{
+            //    Name = "Irwene"
+            //};
 
-            var operation = TableOperation.InsertOrReplace(entity);
+            //var operation = TableOperation.InsertOrReplace(entity);
 
-            var result = await table.ExecuteAsync(operation);
+            //var result = await table.ExecuteAsync(operation);
 
-            operation = TableOperation.Retrieve<GuildEntity>(entity.PartitionKey, entity.RowKey);
+            //operation = TableOperation.Retrieve<GuildEntity>(entity.PartitionKey, entity.RowKey);
 
-            result = await table.ExecuteAsync(operation);
+            //result = await table.ExecuteAsync(operation);
 
             return View();
         }

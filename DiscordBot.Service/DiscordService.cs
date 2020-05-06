@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using DiscordBot.Service.Model;
+using DiscordBot.Service.Enums;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 
@@ -10,6 +11,8 @@ namespace DiscordBot.Service
     public class DiscordService
     {
         private IConfiguration config;
+
+        public ServiceStatus Status { get; set; }
 
         public DiscordService(IConfiguration configuration)
         {
@@ -24,7 +27,7 @@ namespace DiscordBot.Service
             CloudTable table = tableClient.GetTableReference("Guild");
             var r = table.CreateIfNotExistsAsync().Result;
 
-            var g = new Guild(new Guid().ToString())
+            var g = new Guild(Guid.NewGuid().ToString())
             {
                 Name = "Irwene"
             };
@@ -35,7 +38,7 @@ namespace DiscordBot.Service
             var secondTable = tableClient.GetTableReference("RoleAssignation");
             secondTable.CreateIfNotExists();
 
-            foreach (var num in Enumerable.Range(1, 10))
+            foreach (var num in Enumerable.Range(1, 1))
             {
                 var n = new RoleAssignation(g)
                 {
@@ -49,13 +52,14 @@ namespace DiscordBot.Service
 
             g.LoadChildrens(guild => guild.RolesAssignation).Wait();
 
-            Console.WriteLine(g.RolesAssignation.Count);
+            Console.WriteLine(g.RolesAssignation);
 
+            this.Status = ServiceStatus.Started;
         }
 
         public void Stop()
         {
-
+            this.Status = ServiceStatus.Stopped;
         }
 
     }

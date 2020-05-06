@@ -27,6 +27,6 @@ namespace DiscordBot.Service.Model
         public string Name { get; set; }
 
         [IgnoreProperty]
-        public ICollection<RoleAssignation> RolesAssignation { get; set; }
+        public ICollection<RoleAssignation> RoleAssignations { get; set; }
     }
 }

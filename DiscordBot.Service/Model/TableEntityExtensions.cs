@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Azure.Cosmos.Table.Queryable;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -67,9 +68,9 @@ namespace DiscordBot.Service.Model
             var tableName = childType.Name;
             CloudTable table = tableClient.GetTableReference(tableName);
             var creation = await table.CreateIfNotExistsAsync();
-            
+
             //If the table was just created, we populate the field with an empty collection and return.
-            if(creation)
+            if (creation)
             {
                 var childrens = new Collection<TChild>();
                 propInfo.SetValue(parent, childrens);
@@ -77,9 +78,7 @@ namespace DiscordBot.Service.Model
                 return;
             }
 
-            var query = table.CreateQuery<TChild>();
-            
-            query.Where(child => child.PartitionKey == parent.RowKey);
+            var query = table.CreateQuery<TChild>().Where(child => child.PartitionKey == parent.RowKey).AsTableQuery();
 
             List<TChild> result = new List<TChild>();
 
@@ -107,6 +106,40 @@ namespace DiscordBot.Service.Model
             propInfo.SetValue(parent, result);
         }
 
-        //public async Task LoadChildren
+        public static async Task LoadChild<TParent, TChild>(this TParent parent, Expression<Func<TParent, TChild>> child) where TParent : TableEntity where TChild : TableEntity, new()
+        {
+            var propInfo = GetPropertyInfo(child);
+
+            var childType = propInfo.PropertyType;
+
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration["secret-azure-tables"]);
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            var tableName = childType.Name;
+            CloudTable table = tableClient.GetTableReference(tableName);
+            var creation = await table.CreateIfNotExistsAsync();
+
+            //If the table was just created, we populate the field with an empty collection and return.
+            if (creation)
+            {
+                var childrens = new Collection<TChild>();
+                propInfo.SetValue(parent, childrens);
+
+                return;
+            }
+
+            var query = table.CreateQuery<TChild>().Where(c => c.PartitionKey == parent.RowKey).AsTableQuery();
+
+            var result = table.ExecuteQuery(query).Single();
+
+            var parentProp = childType.GetProperties(BindingFlags.Public | BindingFlags.Instance).SingleOrDefault(prop => prop.GetCustomAttributes<ParentAttribute>(true).Any(att => att.ParentType == typeof(TParent)));
+
+            //If a property referencing a parent of the type we got was marked, we link them up.
+            if (parentProp != null)
+            {
+                parentProp.SetValue(result, parent);
+            }
+
+            propInfo.SetValue(parent, result);
+        }
     }
 }

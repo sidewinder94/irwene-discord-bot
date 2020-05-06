@@ -56,6 +56,24 @@ namespace DiscordBot.Service.Model
             return propInfo;
         }
 
+        public static CloudTable GetTable<T>(this T entity) where T : TableEntity
+        {
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration["secret-azure-tables"]);
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            var tableName = typeof(T).Name;
+            CloudTable table = tableClient.GetTableReference(tableName);
+
+            return table;
+        }
+
+        public static async Task<CloudTable> GetTableAndCreate<T>(this T entity) where T : TableEntity
+        {
+            var table = entity.GetTable();
+
+            await table.CreateIfNotExistsAsync();
+
+            return table;
+        }
 
         public static async Task LoadChildrens<TParent, TChild>(this TParent parent, Expression<Func<TParent, ICollection<TChild>>> memberToLoad) where TParent : TableEntity where TChild : TableEntity, new()
         {
@@ -63,10 +81,7 @@ namespace DiscordBot.Service.Model
 
             var childType = propInfo.PropertyType.GetGenericArguments()[0];
 
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration["secret-azure-tables"]);
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            var tableName = childType.Name;
-            CloudTable table = tableClient.GetTableReference(tableName);
+            var table = GetTable(new TChild());
             var creation = await table.CreateIfNotExistsAsync();
 
             //If the table was just created, we populate the field with an empty collection and return.
@@ -112,10 +127,8 @@ namespace DiscordBot.Service.Model
 
             var childType = propInfo.PropertyType;
 
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration["secret-azure-tables"]);
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            var tableName = childType.Name;
-            CloudTable table = tableClient.GetTableReference(tableName);
+            var table = GetTable(new TChild());
+
             var creation = await table.CreateIfNotExistsAsync();
 
             //If the table was just created, we populate the field with an empty collection and return.

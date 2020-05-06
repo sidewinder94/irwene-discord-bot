@@ -50,9 +50,9 @@ namespace DiscordBot.Service
                 secondTable.Execute(operationd);
             }
 
-            g.LoadChildrens(guild => guild.RolesAssignation).Wait();
+            g.LoadChildrens(guild => guild.RoleAssignations).Wait();
 
-            Console.WriteLine(g.RolesAssignation);
+            Console.WriteLine(g.RoleAssignations.Count);
 
             this.Status = ServiceStatus.Started;
         }

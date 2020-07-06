@@ -78,6 +78,8 @@ namespace DiscordBot.Service
         {
             await _client.StopAsync();
         }
+        
+        public DiscordSocketClient Client => this._client;
 
         public void Stop()
         {

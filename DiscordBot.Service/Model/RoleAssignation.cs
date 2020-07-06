@@ -16,6 +16,7 @@ namespace DiscordBot.Service.Model
         {
             this.RowKey = Guid.NewGuid().ToString();
             this.PartitionKey = guild.RowKey;
+            this.Guild = guild;
         }
 
         private IRole targetRole;

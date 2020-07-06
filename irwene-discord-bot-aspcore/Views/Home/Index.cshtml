@@ -2,11 +2,17 @@
     ViewData["Title"] = "Home Page";
 }
 
+@using DiscordBot.Service.Enums
+@using Discord
 @model DiscordBot.Service.DiscordService
 
-<div class="text-center">
-    <h1 class="display-4">Service Status</h1>
-    <p>
-        @Html.LabelFor(model => model.Status, htmlAttributes: new { })
-    </p>
-</div>
+    <div class="text-center">
+        <h1 class="display-4">Service Status</h1>
+        <p style="@(Model.Status == ServiceStatus.Started ? "color: green;" : "color: red;")">
+            @Html.DisplayFor(model => model.Status)
+        </p>
+        <h1 class="display-4">Bot Status</h1>
+        <p style="@(Model.Client.ConnectionState == ConnectionState.Connected ? "color: green;" : "color: red;")">
+            @Html.DisplayFor(model => model.Client.ConnectionState)
+        </p>
+    </div>

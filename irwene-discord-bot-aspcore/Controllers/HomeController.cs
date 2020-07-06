@@ -30,8 +30,6 @@ namespace irwene_discord_bot_aspcore.Controllers
             return View(_service);
         }
 
-
-
         public async Task<IActionResult> CreateTable()
         {
             //CloudStorageAccount storageAccount = CloudStorageAccount.Parse(_configuration["secret-azure-tables"]);

@@ -12,7 +12,8 @@
             @Html.DisplayFor(model => model.Status)
         </p>
         <h1 class="display-4">Bot Status</h1>
-        <p style="@(Model.Client.ConnectionState == ConnectionState.Connected ? "color: green;" : "color: red;")">
+ 
+        <p style="@(Model.Client != null && Model.Client.ConnectionState == ConnectionState.Connected ? "color: green;" : "color: red;")">
             @Html.DisplayFor(model => model.Client.ConnectionState)
         </p>
     </div>

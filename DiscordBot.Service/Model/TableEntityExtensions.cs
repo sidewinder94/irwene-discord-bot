@@ -3,13 +3,10 @@ using Microsoft.Azure.Cosmos.Table.Queryable;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DiscordBot.Service.Model

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using DiscordBot.Service;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -15,16 +16,18 @@ namespace irwene_discord_bot_aspcore.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly DiscordService _service;
 
-        public HomeController(ILogger<HomeController> logger, IConfiguration configuration)
+        public HomeController(ILogger<HomeController> logger, IConfiguration configuration, DiscordService service)
         {
             _logger = logger;
             _configuration = configuration;
+            _service = service;
         }
 
         public IActionResult Index()
         {
-            return View();
+            return View(_service);
         }
 
 

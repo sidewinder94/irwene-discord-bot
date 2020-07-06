@@ -11,17 +11,17 @@ namespace DiscordBot.Service.Model
         {
         }
 
-        public Guild(string guildId)
+        public Guild(ulong guildId)
         {
-            this.RowKey = guildId;
+            this.RowKey = guildId.ToString();
 
             //All guilds should stays in the same partitions
-            this.PartitionKey = typeof(Guild).Name;
+            this.PartitionKey = nameof(Guild);
         }
 
-        public string Id
+        public ulong Id
         {
-            get => this.RowKey;
+            get => ulong.Parse(this.RowKey);
         }
 
         public string Name { get; set; }

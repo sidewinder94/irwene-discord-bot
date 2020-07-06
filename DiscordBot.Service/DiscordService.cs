@@ -1,8 +1,15 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using DiscordBot.Service.Commands;
 using DiscordBot.Service.Model;
 using DiscordBot.Service.Enums;
+using DiscordBot.Service.Events;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 
@@ -10,55 +17,72 @@ namespace DiscordBot.Service
 {
     public class DiscordService
     {
-        private IConfiguration config;
+        private readonly IConfiguration _config;
+        private DiscordSocketClient _client;
+        private CommandHandler _handler;
+        private CommandService _commandService;
 
         public ServiceStatus Status { get; set; }
 
         public DiscordService(IConfiguration configuration)
         {
-            this.config = configuration;
+            this._config = configuration;
             TableEntityExtensions.Configuration = configuration;
+        }
+
+        private async Task StartAsync()
+        {
+            if (_client == null)
+            {
+                var discordConfig = new DiscordSocketConfig
+                {
+                    GuildSubscriptions = true
+                };
+
+                this._client = new DiscordSocketClient(discordConfig);
+
+                var commandServiceConfig = new CommandServiceConfig
+                {
+                };
+
+                this._commandService = new CommandService(commandServiceConfig);
+
+                this._handler = new CommandHandler(this._client, this._commandService);
+
+                this._client.GuildMemberUpdated += ClientOnGuildMemberUpdated;
+            }
+
+            if (_client.LoginState != LoginState.LoggedIn)
+            {
+                await this._client.LoginAsync(TokenType.Bot, token: _config["discord-bot-token"]);
+            }
+
+            await this._client.StartAsync();
+        }
+
+        private Task ClientOnGuildMemberUpdated(SocketGuildUser before, SocketGuildUser after)
+        {
+            new GuildMemberEvents().Updated(before, after);
+
+            return Task.CompletedTask;
         }
 
         public void Start()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(config["secret-azure-tables"]);
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("Guild");
-            var r = table.CreateIfNotExistsAsync().Result;
-
-            var g = new Guild(Guid.NewGuid().ToString())
-            {
-                Name = "Irwene"
-            };
-            var operation = TableOperation.InsertOrReplace(g);
-
-            var result = table.ExecuteAsync(operation).Result;
-
-            var secondTable = tableClient.GetTableReference("RoleAssignation");
-            secondTable.CreateIfNotExists();
-
-            foreach (var num in Enumerable.Range(1, 1))
-            {
-                var n = new RoleAssignation(g)
-                {
-                    GameName = num.ToString(),
-                    RowKey = num.ToString()
-                };
-
-                var operationd = TableOperation.InsertOrReplace(n);
-                secondTable.Execute(operationd);
-            }
-
-            g.LoadChildrens(guild => guild.RoleAssignations).Wait();
-
-            Console.WriteLine(g.RoleAssignations.Count);
-
+            this.StartAsync().Wait();
+            
             this.Status = ServiceStatus.Started;
+        }
+
+        private async Task StopAsync()
+        {
+            await _client.StopAsync();
         }
 
         public void Stop()
         {
+            this.StopAsync().Wait();
+
             this.Status = ServiceStatus.Stopped;
         }
 

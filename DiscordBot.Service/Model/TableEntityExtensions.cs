@@ -53,7 +53,7 @@ namespace DiscordBot.Service.Model
             return propInfo;
         }
 
-        public static CloudTable GetTable<T>(this T entity) where T : TableEntity
+        public static CloudTable GetTable<T>() where T : TableEntity
         {
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration["secret-azure-tables"]);
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
@@ -63,9 +63,9 @@ namespace DiscordBot.Service.Model
             return table;
         }
 
-        public static async Task<CloudTable> GetTableAndCreate<T>(this T entity) where T : TableEntity
+        public static async Task<CloudTable> GetTableAndCreate<T>() where T : TableEntity
         {
-            var table = entity.GetTable();
+            var table = GetTable<T>();
 
             await table.CreateIfNotExistsAsync();
 
@@ -78,7 +78,7 @@ namespace DiscordBot.Service.Model
 
             var childType = propInfo.PropertyType.GetGenericArguments()[0];
 
-            var table = GetTable(new TChild());
+            var table = GetTable<TChild>();
             var creation = await table.CreateIfNotExistsAsync();
 
             //If the table was just created, we populate the field with an empty collection and return.
@@ -124,7 +124,7 @@ namespace DiscordBot.Service.Model
 
             var childType = propInfo.PropertyType;
 
-            var table = GetTable(new TChild());
+            var table = GetTable<TChild>();
 
             var creation = await table.CreateIfNotExistsAsync();
 

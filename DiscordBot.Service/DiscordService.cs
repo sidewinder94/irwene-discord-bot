@@ -49,6 +49,8 @@ namespace DiscordBot.Service
 
                 this._handler = new CommandHandler(this._client, this._commandService);
 
+                await this._handler.InstallCommandsAsync();
+
                 this._client.GuildMemberUpdated += ClientOnGuildMemberUpdated;
             }
 

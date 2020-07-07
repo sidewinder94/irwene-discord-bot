@@ -32,7 +32,7 @@ namespace DiscordBot.Service.Commands
             //
             // If you do not use Dependency Injection, pass null.
             // See Dependency Injection guide for more information.
-            await _commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(),
+            await _commands.AddModulesAsync(assembly: Assembly.GetAssembly(typeof(CommandHandler)),
                                             services: null);
         }
 

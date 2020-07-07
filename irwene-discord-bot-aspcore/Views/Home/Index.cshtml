@@ -4,6 +4,7 @@
 
 @using DiscordBot.Service.Enums
 @using Discord
+@using irwene_discord_bot_aspcore.Controllers
 @model DiscordBot.Service.DiscordService
 
     <div class="text-center">
@@ -16,7 +17,7 @@
                 }
                 else
                 {
-                    @Html.ActionLink(Model.Status.ToString(), "StartService")
+                    @Html.ActionLink(Model.Status.ToString(), "StartService", "Home", null,new { @style ="color:red;" })
                 }
 
             }

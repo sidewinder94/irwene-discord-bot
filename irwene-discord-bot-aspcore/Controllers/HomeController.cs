@@ -30,28 +30,11 @@ namespace irwene_discord_bot_aspcore.Controllers
             return View(_service);
         }
 
-        public async Task<IActionResult> CreateTable()
+        public ActionResult StartService()
         {
-            //CloudStorageAccount storageAccount = CloudStorageAccount.Parse(_configuration["secret-azure-tables"]);
-            //CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            //CloudTable table = tableClient.GetTableReference("Guild");
-            //ViewBag.Success = await table.CreateIfNotExistsAsync();
-            //ViewBag.TableName = table.Name;
+            this._service.Start();
 
-            //var entity = new GuildEntity(Guid.NewGuid().ToString())
-            //{
-            //    Name = "Irwene"
-            //};
-
-            //var operation = TableOperation.InsertOrReplace(entity);
-
-            //var result = await table.ExecuteAsync(operation);
-
-            //operation = TableOperation.Retrieve<GuildEntity>(entity.PartitionKey, entity.RowKey);
-
-            //result = await table.ExecuteAsync(operation);
-
-            return View();
+            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult Privacy()

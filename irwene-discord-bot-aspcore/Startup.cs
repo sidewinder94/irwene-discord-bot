@@ -44,7 +44,7 @@ namespace irwene_discord_bot_aspcore
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                service.Start();
+                //service.Start();
             }
             else
             {

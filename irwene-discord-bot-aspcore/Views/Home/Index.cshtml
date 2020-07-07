@@ -9,7 +9,19 @@
     <div class="text-center">
         <h1 class="display-4">Service Status</h1>
         <p style="@(Model.Status == ServiceStatus.Started ? "color: green;" : "color: red;")">
-            @Html.DisplayFor(model => model.Status)
+            @{
+                if (Model.Status != ServiceStatus.Stopped)
+                {
+                    @Html.DisplayFor(model => model.Status)
+                }
+                else
+                {
+                    @Html.ActionLink(Model.Status.ToString(), "StartService")
+                }
+
+            }
+
+
         </p>
         
         @{

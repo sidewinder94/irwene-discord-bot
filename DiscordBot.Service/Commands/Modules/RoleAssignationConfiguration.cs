@@ -41,7 +41,10 @@ namespace DiscordBot.Service.Commands.Modules
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 
-            var guild = guildsTable.CreateQuery<Guild>().FirstOrDefault(g => g.RowKey == role.Guild.Id.ToString());
+            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
+                .AsTableQuery();
+
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
 
             if (guild == null)
             {
@@ -82,7 +85,10 @@ namespace DiscordBot.Service.Commands.Modules
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 
-            var guild = guildsTable.CreateQuery<Guild>().FirstOrDefault(g => g.RowKey == role.Guild.Id.ToString());
+            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
+                .AsTableQuery();
+
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
 
             if (guild == null)
             {

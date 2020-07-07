@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
 using DiscordBot.Service;
+using irwene_discord_bot_aspcore.Services;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -33,6 +34,9 @@ namespace irwene_discord_bot_aspcore
             });
 
             services.AddSingleton<DiscordService>();
+
+            services.AddSingleton<BackgroundDiscordService>();
+            services.AddHostedService(provider => provider.GetService<BackgroundDiscordService>());
 
         }
 

@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DiscordBot.Service;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using irwene_discord_bot_aspcore.Models;
+using irwene_discord_bot_aspcore.Services;
 using Microsoft.Azure.Cosmos.Table;
 
 namespace irwene_discord_bot_aspcore.Controllers
@@ -16,9 +18,9 @@ namespace irwene_discord_bot_aspcore.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IConfiguration _configuration;
-        private readonly DiscordService _service;
+        private readonly BackgroundDiscordService _service;
 
-        public HomeController(ILogger<HomeController> logger, IConfiguration configuration, DiscordService service)
+        public HomeController(ILogger<HomeController> logger, IConfiguration configuration, BackgroundDiscordService service)
         {
             _logger = logger;
             _configuration = configuration;
@@ -27,12 +29,12 @@ namespace irwene_discord_bot_aspcore.Controllers
 
         public IActionResult Index()
         {
-            return View(_service);
+            return View(_service.Service);
         }
 
-        public ActionResult StartService()
+        public async Task<IActionResult> StartService()
         {
-            this._service.Start();
+            await this._service.StartAsync(new CancellationToken(false));
 
             return RedirectToAction(nameof(Index));
         }

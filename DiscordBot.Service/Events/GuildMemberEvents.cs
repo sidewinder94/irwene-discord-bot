@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord.WebSocket;
 using DiscordBot.Service.Model;
 using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Azure.Cosmos.Table.Queryable;
 using static DiscordBot.Service.Model.TableEntityExtensions;
 
 namespace DiscordBot.Service.Events
@@ -16,14 +17,16 @@ namespace DiscordBot.Service.Events
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 
-            var guild = guildsTable.CreateQuery<Guild>().FirstOrDefault(g => g.RowKey == after.Guild.Id.ToString());
+            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == after.Guild.Id.ToString()).Take(1).AsTableQuery();
+
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
 
             if (guild == null)
             {
                 //On aurait pu prendre le guild id du before, pas comme si ça allait changer
                 guild = new Guild(after.Guild.Id);
 
-                var tableOp = TableOperation.Insert(guild);
+                var tableOp = TableOperation.InsertOrMerge(guild);
 
                 await guildsTable.ExecuteAsync(tableOp);
 
@@ -33,6 +36,12 @@ namespace DiscordBot.Service.Events
 
             //On charge les consignes d'assignation
             await guild.LoadChildrens(g => g.RoleAssignations);
+
+            if (!guild.RoleAssignations.Any())
+            {
+                //Rien a faire, pas d'assignations
+                return;
+            }
 
             throw new NotImplementedException("Pas de raison d'implémenter ça tant qu'on a pas implémenté les commandes de setup");
         }

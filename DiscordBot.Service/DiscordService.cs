@@ -15,7 +15,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace DiscordBot.Service
 {
-    public class DiscordService
+    public class DiscordService 
     {
         private readonly IConfiguration _config;
         private DiscordSocketClient _client;

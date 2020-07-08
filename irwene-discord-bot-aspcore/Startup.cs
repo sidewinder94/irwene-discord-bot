@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
 using DiscordBot.Service;
 using irwene_discord_bot_aspcore.Services;
+using Microsoft.Extensions.Logging;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -41,7 +42,7 @@ namespace irwene_discord_bot_aspcore
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime, ILoggerFactory loggerFactory)
         {
             var service = app.ApplicationServices.GetService<DiscordService>();
             
@@ -69,6 +70,8 @@ namespace irwene_discord_bot_aspcore
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
+
+            
 
             applicationLifetime.ApplicationStopping.Register(() => this.Shutdown(service));
         }

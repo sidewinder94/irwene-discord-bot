@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 using DiscordBot.Service.Model;
 using Microsoft.Azure.Cosmos.Table;
@@ -17,7 +19,8 @@ namespace DiscordBot.Service.Events
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 
-            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == after.Guild.Id.ToString()).Take(1).AsTableQuery();
+            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == after.Guild.Id.ToString()).Take(1)
+                .AsTableQuery();
 
             var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
 
@@ -43,8 +46,43 @@ namespace DiscordBot.Service.Events
                 return;
             }
 
-            throw new NotImplementedException("Pas de raison d'implémenter ça tant qu'on a pas implémenté les commandes de setup");
-        }
+            var orderedAssignations = guild.RoleAssignations.OrderBy(ra => ra.Order).ToList();
 
+            foreach (var orderedAssignation in orderedAssignations)
+            {
+                try
+                {
+                    if (orderedAssignation.IsRegExp)
+                    {
+                        var regexp = new Regex(orderedAssignation.GameName);
+
+                        if (regexp.IsMatch(after.Activity.Name))
+                        {
+                            var role = after.Guild.GetRole(orderedAssignation.RoleId);
+
+                            await after.AddRoleAsync(role, RequestOptions.Default);
+
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (after.Activity.Name.Contains(orderedAssignation.GameName))
+                        {
+                            var role = after.Guild.GetRole(orderedAssignation.RoleId);
+
+                            await after.AddRoleAsync(role, RequestOptions.Default);
+
+                            return;
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    continue;
+                }
+            }
+        }
     }
 }

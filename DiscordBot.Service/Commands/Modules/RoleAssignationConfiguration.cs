@@ -102,11 +102,23 @@ namespace DiscordBot.Service.Commands.Modules
 
             var bindingsTable = await GetTableAndCreate<RoleAssignation>();
 
+            await guild.LoadChildrens(g => g.RoleAssignations);
+
+            uint nextOrder = 0;
+
+            if (guild.RoleAssignations.Any())
+            {
+                var lastOrder = guild.RoleAssignations.Max(a => a.Order);
+
+                nextOrder = lastOrder + 1;
+            }
+
             var insert = new RoleAssignation(guild)
             {
                 GameName = gameIdent,
                 IsRegExp = isRegExp,
-                Role = role
+                Role = role,
+                Order = nextOrder
             };
 
             var insertOp = TableOperation.Insert(insert);

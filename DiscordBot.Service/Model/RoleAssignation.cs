@@ -26,6 +26,8 @@ namespace DiscordBot.Service.Model
         public ulong RoleId { private set; get; }
 
         public bool IsRegExp { get; set; }
+
+        public uint Order { get; set; }
         
         [IgnoreProperty]
         [Parent(parentType: typeof(Guild))]

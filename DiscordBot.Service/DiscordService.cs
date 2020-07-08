@@ -12,22 +12,27 @@ using DiscordBot.Service.Enums;
 using DiscordBot.Service.Events;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Service
 {
-    public class DiscordService 
+    public class DiscordService
     {
         private readonly IConfiguration _config;
         private DiscordSocketClient _client;
         private CommandHandler _handler;
         private CommandService _commandService;
+        private ILogger<DiscordSocketClient> _clientLogger;
+        private ILogger<CommandService> _commandLogger;
 
         public ServiceStatus Status { get; set; }
 
-        public DiscordService(IConfiguration configuration)
+        public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger)
         {
             this._config = configuration;
             TableEntityExtensions.Configuration = configuration;
+            this._clientLogger = clientLogger;
+            this._commandLogger = commandLogger;
         }
 
         private async Task StartAsync()
@@ -47,11 +52,15 @@ namespace DiscordBot.Service
 
                 this._commandService = new CommandService(commandServiceConfig);
 
+                this._commandService.Log += CommandLog;
+
                 this._handler = new CommandHandler(this._client, this._commandService);
 
                 await this._handler.InstallCommandsAsync();
 
                 this._client.GuildMemberUpdated += ClientOnGuildMemberUpdated;
+
+                this._client.Log += ClientLog;
             }
 
             if (_client.LoginState != LoginState.LoggedIn)
@@ -62,9 +71,56 @@ namespace DiscordBot.Service
             await this._client.StartAsync();
         }
 
+        private Task ClientLog(LogMessage logMessage)
+        {
+            return this.Log(logMessage, this._clientLogger);
+        }
+
+        private Task CommandLog(LogMessage logMessage)
+        {
+            return this.Log(logMessage, this._commandLogger);
+        }
+
+        private async Task Log(LogMessage logMessage, ILogger logger)
+        {
+            await Task.Run(() =>
+            {
+                LogLevel level;
+
+                #region mapping loglevels
+                switch (logMessage.Severity)
+                {
+                    case LogSeverity.Critical:
+                        level = LogLevel.Critical;
+                        break;
+                    case LogSeverity.Error:
+                        level = LogLevel.Error;
+                        break;
+                    case LogSeverity.Warning:
+                        level = LogLevel.Warning;
+                        break;
+                    case LogSeverity.Info:
+                        level = LogLevel.Information;
+                        break;
+                    case LogSeverity.Verbose:
+                        level = LogLevel.Trace;
+                        break;
+                    case LogSeverity.Debug:
+                        level = LogLevel.Debug;
+                        break;
+                    default:
+                        logger.Log(LogLevel.Critical, new ArgumentOutOfRangeException(nameof(logMessage.Severity)), $"Loglevel unkown, message was : {logMessage.Message}");
+                        return;
+                }
+                #endregion
+
+                logger.Log(level, logMessage.Exception, $"Source : {logMessage.Source} ; Message: {logMessage.Message}");
+            });
+        }
+
         private Task ClientOnGuildMemberUpdated(SocketGuildUser before, SocketGuildUser after)
         {
-            new GuildMemberEvents().Updated(before, after);
+            Task.Run(() => { new GuildMemberEvents().Updated(before, after); });
 
             return Task.CompletedTask;
         }
@@ -72,7 +128,7 @@ namespace DiscordBot.Service
         public void Start()
         {
             this.StartAsync().Wait();
-            
+
             this.Status = ServiceStatus.Started;
         }
 
@@ -80,7 +136,7 @@ namespace DiscordBot.Service
         {
             await _client.StopAsync();
         }
-        
+
         public DiscordSocketClient Client => this._client;
 
         public void Stop()

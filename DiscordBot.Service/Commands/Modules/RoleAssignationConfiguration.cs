@@ -35,9 +35,9 @@ namespace DiscordBot.Service.Commands.Modules
             await this.BindInternal(role, gameRegExp, true);
         }
 
-        [Command("Unbind")]
+        [Command("unbind")]
         [Summary("Removes all bindings for a given role")]
-        private async Task Unbind(SocketRole role)
+        private async Task Unbind(SocketRole role, int? order = null)
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 
@@ -61,24 +61,38 @@ namespace DiscordBot.Service.Commands.Modules
 
             var bindingsTable = await GetTableAndCreate<RoleAssignation>();
 
-            var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id).AsTableQuery();
-
-            var batchDelete = new TableBatchOperation();
-
-            TableContinuationToken token = null;
-            do
+            if (!order.HasValue)
             {
-                var partialResult = await bindingsTable.ExecuteQuerySegmentedAsync(roleBindingsQuery, token);
-                token = partialResult.ContinuationToken;
-                foreach (var result in partialResult)
-                {
-                    batchDelete.Delete(result);
-                }
-            }
-            while (token != null);
+                var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
+                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long) role.Id).AsTableQuery();
 
-            var rbatch = await bindingsTable.ExecuteBatchAsync(batchDelete);
+                var batchDelete = new TableBatchOperation();
+
+                TableContinuationToken token = null;
+                do
+                {
+                    var partialResult = await bindingsTable.ExecuteQuerySegmentedAsync(roleBindingsQuery, token);
+                    token = partialResult.ContinuationToken;
+
+                    foreach (var result in partialResult)
+                    {
+                        batchDelete.Delete(result);
+                    }
+                } while (token != null);
+
+                var rbatch = await bindingsTable.ExecuteBatchAsync(batchDelete);
+            }
+            else
+            {
+                var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
+                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id && ass.Order == order.Value).Take(1).AsTableQuery();
+
+                var roleBinding = bindingsTable.ExecuteQuery(roleBindingsQuery).FirstOrDefault();
+
+                var to = TableOperation.Delete(roleBinding);
+
+                await bindingsTable.ExecuteAsync(to);
+            }
         }
 
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)

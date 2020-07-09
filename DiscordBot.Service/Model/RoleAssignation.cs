@@ -25,8 +25,6 @@ namespace DiscordBot.Service.Model
 
         public long RoleStorage { get; set; }
 
-        public string OrderStorage { get; set; }
-
         public bool IsRegExp { get; set; }
 
         [IgnoreProperty]

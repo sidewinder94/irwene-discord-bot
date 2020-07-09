@@ -62,7 +62,7 @@ namespace DiscordBot.Service.Commands.Modules
             var bindingsTable = await GetTableAndCreate<RoleAssignation>();
 
             var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleId == role.Id).AsTableQuery();
+                ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id).AsTableQuery();
 
             var batchDelete = new TableBatchOperation();
 

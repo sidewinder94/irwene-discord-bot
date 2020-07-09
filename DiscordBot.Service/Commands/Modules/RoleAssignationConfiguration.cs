@@ -104,7 +104,7 @@ namespace DiscordBot.Service.Commands.Modules
 
             await guild.LoadChildrens(g => g.RoleAssignations);
 
-            uint nextOrder = 0;
+            long nextOrder = 0;
 
             if (guild.RoleAssignations.Any())
             {

@@ -23,11 +23,20 @@ namespace DiscordBot.Service.Model
 
         public string GameName { get; set; }
 
-        public ulong RoleId { private set; get; }
+        public long RoleStorage { get; set; }
+
+        public string OrderStorage { get; set; }
 
         public bool IsRegExp { get; set; }
 
-        public uint Order { get; set; }
+        [IgnoreProperty]
+        public ulong RoleId
+        {
+            set => RoleStorage = (long)value;
+            get => (ulong)RoleStorage;
+        }
+
+        public long Order { get; set; }
         
         [IgnoreProperty]
         [Parent(parentType: typeof(Guild))]

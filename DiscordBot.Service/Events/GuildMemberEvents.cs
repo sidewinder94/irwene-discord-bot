@@ -27,7 +27,7 @@ namespace DiscordBot.Service.Events
             if (guild == null)
             {
                 //On aurait pu prendre le guild id du before, pas comme si ça allait changer
-                guild = new Guild(after.Guild.Id);
+                guild = new Guild(after.Guild);
 
                 var tableOp = TableOperation.InsertOrMerge(guild);
 

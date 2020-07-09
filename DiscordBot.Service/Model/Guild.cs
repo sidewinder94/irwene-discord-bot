@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
 using System;
 using System.Collections.Generic;
+using Discord;
 
 namespace DiscordBot.Service.Model
 {
@@ -9,6 +10,11 @@ namespace DiscordBot.Service.Model
         [Obsolete("Exists only for technical reasons", true)]
         public Guild()
         {
+        }
+
+        public Guild(IGuild guild) : this(guild.Id)
+        {
+            this.Name = guild.Name;
         }
 
         public Guild(ulong guildId)

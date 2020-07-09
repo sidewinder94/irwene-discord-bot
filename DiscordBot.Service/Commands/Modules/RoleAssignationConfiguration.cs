@@ -49,7 +49,7 @@ namespace DiscordBot.Service.Commands.Modules
             if (guild == null)
             {
                 //On aurait pu prendre le guild id du before, pas comme si ça allait changer
-                guild = new Guild(role.Guild.Id);
+                guild = new Guild(role.Guild);
 
                 var tableOp = TableOperation.Insert(guild);
 
@@ -93,7 +93,7 @@ namespace DiscordBot.Service.Commands.Modules
             if (guild == null)
             {
                 //On aurait pu prendre le guild id du before, pas comme si ça allait changer
-                guild = new Guild(role.Guild.Id);
+                guild = new Guild(role.Guild);
 
                 var tableOp = TableOperation.Insert(guild);
 

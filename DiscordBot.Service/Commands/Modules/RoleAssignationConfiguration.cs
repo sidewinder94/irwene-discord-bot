@@ -37,8 +37,10 @@ namespace DiscordBot.Service.Commands.Modules
 
         [Command("unbind")]
         [Summary("Removes all bindings for a given role")]
-        private async Task Unbind(SocketRole role, int? order = null)
+        public async Task Unbind(SocketRole role, int? order = null)
         {
+            this.AuthorizeRoleAdministrator(true);
+
             var guildsTable = await GetTableAndCreate<Guild>();
 
             var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
@@ -95,8 +97,25 @@ namespace DiscordBot.Service.Commands.Modules
             }
         }
 
+
+        private bool AuthorizeRoleAdministrator(bool throwOnUnauthorized = false)
+        {
+            var authorized = this.Context.Guild.GetUser(this.Context.Message.Author.Id).Roles.Any(r => r.Permissions.Administrator || r.Permissions.ManageRoles);
+
+            if (throwOnUnauthorized && !authorized)
+            {
+                throw new InvalidOperationException("You don't have the required permissions to administer roles");
+            }
+            else
+            {
+                return authorized;
+            }
+        }
+
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)
         {
+            this.AuthorizeRoleAdministrator(true);
+
             var guildsTable = await GetTableAndCreate<Guild>();
 
             var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)

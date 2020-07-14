@@ -17,6 +17,13 @@ namespace DiscordBot.Service.Events
     {
         public async void Updated(SocketGuildUser before, SocketGuildUser after)
         {
+            if(before.Activity.Name == after.Activity.Name)
+            {
+                //We don't want to overload the bot by trying to do things when the activity name didn't change (ie: status change, match details change in the activity, ...)
+                return;
+            }
+
+
             var guildsTable = await GetTableAndCreate<Guild>();
 
             var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == after.Guild.Id.ToString()).Take(1)

@@ -62,7 +62,7 @@ namespace DiscordBot.Service.Events
                 {
                     if (orderedAssignation.IsRegExp)
                     {
-                        var regexp = new Regex(orderedAssignation.GameName);
+                        var regexp = new Regex(orderedAssignation.GameName, RegexOptions.IgnoreCase);
 
                         if (regexp.IsMatch(after.Activity.Name))
                         {
@@ -75,7 +75,7 @@ namespace DiscordBot.Service.Events
                     }
                     else
                     {
-                        if (after.Activity.Name.Contains(orderedAssignation.GameName))
+                        if (after.Activity.Name.ToLowerInvariant().Contains(orderedAssignation.GameName.ToLowerInvariant()))
                         {
                             var role = after.Guild.GetRole(orderedAssignation.RoleId);
 

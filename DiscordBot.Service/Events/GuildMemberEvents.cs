@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using DiscordBot.Service.Model;
+using Microsoft.ApplicationInsights;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.Cosmos.Table.Queryable;
 using static DiscordBot.Service.Model.TableEntityExtensions;
@@ -15,6 +16,13 @@ namespace DiscordBot.Service.Events
 {
     public class GuildMemberEvents
     {
+        private TelemetryClient _telemetry;
+
+        public GuildMemberEvents(TelemetryClient telemetry)
+        {
+            this._telemetry = telemetry;
+        }
+
         public async void Updated(SocketGuildUser before, SocketGuildUser after)
         {
             if(before?.Activity?.Name == after?.Activity?.Name

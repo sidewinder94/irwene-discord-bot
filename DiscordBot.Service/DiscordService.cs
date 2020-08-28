@@ -26,10 +26,11 @@ namespace DiscordBot.Service
         private ILogger<DiscordSocketClient> _clientLogger;
         private ILogger<CommandService> _commandLogger;
         private TelemetryClient _telemetry;
+        private IServiceProvider _serviceProvider;
 
         public ServiceStatus Status { get; set; }
 
-        public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger, TelemetryClient telemetry)
+        public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger, TelemetryClient telemetry, IServiceProvider serviceProvider)
         {
             this._config = configuration;
             TableEntityExtensions.Configuration = configuration;
@@ -37,6 +38,7 @@ namespace DiscordBot.Service
             this._clientLogger = clientLogger;
             this._commandLogger = commandLogger;
             this._telemetry = telemetry;
+            this._serviceProvider = serviceProvider;
         }
 
         private async Task StartAsync()
@@ -45,7 +47,7 @@ namespace DiscordBot.Service
 
             if (_client == null)
             {
-                this._telemetry.TrackEvent("CLient is null ; First start");
+                this._telemetry.TrackEvent("Client is null ; First start");
 
                 var discordConfig = new DiscordSocketConfig
                 {
@@ -62,7 +64,7 @@ namespace DiscordBot.Service
 
                 this._commandService.Log += CommandLog;
 
-                this._handler = new CommandHandler(this._client, this._commandService);
+                this._handler = new CommandHandler(this._client, this._commandService, this._serviceProvider);
 
                 await this._handler.InstallCommandsAsync();
 
@@ -129,7 +131,7 @@ namespace DiscordBot.Service
 
         private Task ClientOnGuildMemberUpdated(SocketGuildUser before, SocketGuildUser after)
         {
-            Task.Run(() => { new GuildMemberEvents().Updated(before, after); });
+            Task.Run(() => { new GuildMemberEvents(this._telemetry).Updated(before, after); });
 
             return Task.CompletedTask;
         }

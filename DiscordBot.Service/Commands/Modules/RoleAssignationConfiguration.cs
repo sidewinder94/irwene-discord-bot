@@ -8,6 +8,8 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot.Service.Model;
+using JetBrains.Annotations;
+using Microsoft.ApplicationInsights;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.Cosmos.Table.Queryable;
 using static DiscordBot.Service.Model.TableEntityExtensions;
@@ -17,6 +19,10 @@ namespace DiscordBot.Service.Commands.Modules
     [Group("role")]
     public class RoleAssignationConfiguration : ModuleBase<SocketCommandContext>
     {
+
+        [NotNull]
+        public TelemetryClient Telemetry { get; set; }
+
         [Command("bind")]
         [Summary("Command used to bing a role to a game name")]
         public async Task Bind(

@@ -12,11 +12,17 @@ namespace DiscordBot.Service.Commands
     {
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
+        private readonly IServiceProvider _serviceProvider;
 
         public CommandHandler(DiscordSocketClient client, CommandService commands)
         {
             _commands = commands;
             _client = client;
+        }
+
+        public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider) : this(client, commands)
+        {
+            this._serviceProvider = serviceProvider;
         }
 
         public async Task InstallCommandsAsync()
@@ -33,7 +39,7 @@ namespace DiscordBot.Service.Commands
             // If you do not use Dependency Injection, pass null.
             // See Dependency Injection guide for more information.
             await _commands.AddModulesAsync(assembly: Assembly.GetAssembly(typeof(CommandHandler)),
-                                            services: null);
+                                            services: this._serviceProvider);
         }
 
         private async Task HandleCommandAsync(SocketMessage messageParam)

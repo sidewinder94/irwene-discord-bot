@@ -73,8 +73,6 @@ namespace irwene_discord_bot_aspcore
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
 
-            
-
             applicationLifetime.ApplicationStopping.Register(() => this.Shutdown(service));
         }
 

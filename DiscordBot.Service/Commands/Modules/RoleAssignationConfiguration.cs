@@ -66,7 +66,7 @@ namespace DiscordBot.Service.Commands.Modules
             if (!order.HasValue)
             {
                 var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long) role.Id).AsTableQuery();
+                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id).AsTableQuery();
 
                 var batchDelete = new TableBatchOperation();
 
@@ -97,6 +97,22 @@ namespace DiscordBot.Service.Commands.Modules
             }
         }
 
+        [Command("list")]
+        [Summary("Lists all bindings, if given a role, lists all bindings fo given role")]
+        public async Task List(SocketRole role)
+        {
+            this.AuthorizeRoleAdministrator(true);
+
+            var guildsTable = await GetTableAndCreate<Guild>();
+
+            TableQuery<Guild> guildQ;
+
+            if (role is null)
+            {
+                guildQ = guildsTable.CreateQuery<Guild>().AsTableQuery();
+            }
+
+        }
 
         private bool AuthorizeRoleAdministrator(bool throwOnUnauthorized = false)
         {
@@ -159,6 +175,6 @@ namespace DiscordBot.Service.Commands.Modules
             await bindingsTable.ExecuteAsync(insertOp);
         }
 
-        
+
     }
 }

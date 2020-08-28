@@ -12,6 +12,7 @@ using Microsoft.Extensions.Azure;
 using DiscordBot.Service;
 using irwene_discord_bot_aspcore.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -38,6 +39,7 @@ namespace irwene_discord_bot_aspcore
 
             services.AddSingleton<BackgroundDiscordService>();
             services.AddHostedService(provider => provider.GetService<BackgroundDiscordService>());
+            services.AddApplicationInsightsTelemetry(instrumentationKey: Configuration["appinsight-instr-key"]);
 
         }
 

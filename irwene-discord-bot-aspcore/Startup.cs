@@ -13,6 +13,7 @@ using DiscordBot.Service;
 using irwene_discord_bot_aspcore.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.ApplicationInsights;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -40,7 +41,6 @@ namespace irwene_discord_bot_aspcore
             services.AddSingleton<BackgroundDiscordService>();
             services.AddHostedService(provider => provider.GetService<BackgroundDiscordService>());
             services.AddApplicationInsightsTelemetry(instrumentationKey: Configuration["appinsight-instr-key"]);
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

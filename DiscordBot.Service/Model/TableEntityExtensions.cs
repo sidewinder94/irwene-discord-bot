@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Cosmos.Table;
+﻿using Microsoft.ApplicationInsights;
+using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.Cosmos.Table.Queryable;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -7,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace DiscordBot.Service.Model
@@ -26,6 +28,8 @@ namespace DiscordBot.Service.Model
     public static class TableEntityExtensions
     {
         public static IConfiguration Configuration;
+
+        public static TelemetryClient TelemetryClient;
 
         private static PropertyInfo GetPropertyInfo<TSource, TProperty>(Expression<Func<TSource, TProperty>> propertyLambda)
         {
@@ -67,7 +71,9 @@ namespace DiscordBot.Service.Model
         {
             var table = GetTable<T>();
 
-            await table.CreateIfNotExistsAsync();
+            var created = await table.CreateIfNotExistsAsync();
+
+            TelemetryClient.TrackEvent($"Accessing {table.Name}, table was {(created ? string.Empty : "NOT")} created");
 
             return table;
         }
@@ -75,6 +81,8 @@ namespace DiscordBot.Service.Model
         public static async Task LoadChildrens<TParent, TChild>(this TParent parent, Expression<Func<TParent, ICollection<TChild>>> memberToLoad) where TParent : TableEntity where TChild : TableEntity, new()
         {
             var propInfo = GetPropertyInfo(memberToLoad);
+
+            TelemetryClient.TrackEvent($"Loading {typeof(TParent).Name} children to : {propInfo.Name}");
 
             var childType = propInfo.PropertyType.GetGenericArguments()[0];
 
@@ -121,6 +129,8 @@ namespace DiscordBot.Service.Model
         public static async Task LoadChild<TParent, TChild>(this TParent parent, Expression<Func<TParent, TChild>> child) where TParent : TableEntity where TChild : TableEntity, new()
         {
             var propInfo = GetPropertyInfo(child);
+
+            TelemetryClient.TrackEvent($"Loading {typeof(TParent).Name} child property to : {propInfo.Name}");
 
             var childType = propInfo.PropertyType;
 

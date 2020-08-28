@@ -13,6 +13,7 @@ using DiscordBot.Service.Events;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.ApplicationInsights;
 
 namespace DiscordBot.Service
 {
@@ -24,21 +25,28 @@ namespace DiscordBot.Service
         private CommandService _commandService;
         private ILogger<DiscordSocketClient> _clientLogger;
         private ILogger<CommandService> _commandLogger;
+        private TelemetryClient _telemetry;
 
         public ServiceStatus Status { get; set; }
 
-        public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger)
+        public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger, TelemetryClient telemetry)
         {
             this._config = configuration;
             TableEntityExtensions.Configuration = configuration;
+            TableEntityExtensions.TelemetryClient = telemetry;
             this._clientLogger = clientLogger;
             this._commandLogger = commandLogger;
+            this._telemetry = telemetry;
         }
 
         private async Task StartAsync()
         {
+            this._telemetry.TrackEvent("Bot start requested");
+
             if (_client == null)
             {
+                this._telemetry.TrackEvent("CLient is null ; First start");
+
                 var discordConfig = new DiscordSocketConfig
                 {
                     GuildSubscriptions = true
@@ -65,6 +73,7 @@ namespace DiscordBot.Service
 
             if (_client.LoginState != LoginState.LoggedIn)
             {
+                this._telemetry.TrackEvent("Logging in");
                 await this._client.LoginAsync(TokenType.Bot, token: _config["discord-bot-token"]);
             }
 
@@ -141,6 +150,8 @@ namespace DiscordBot.Service
 
         public void Stop()
         {
+            this._telemetry.TrackEvent("Bot stop requested");
+
             this.StopAsync().Wait();
 
             this.Status = ServiceStatus.Stopped;

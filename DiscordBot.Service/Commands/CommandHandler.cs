@@ -68,7 +68,7 @@ namespace DiscordBot.Service.Commands
             var result = await _commands.ExecuteAsync(
                 context: context,
                 argPos: argPos,
-                services: null);
+                services: this._serviceProvider);
 
             // Optionally, we may inform the user if the command fails
             // to be executed; however, this may not always be desired,

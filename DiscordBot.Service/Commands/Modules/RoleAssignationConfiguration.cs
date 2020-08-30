@@ -21,8 +21,13 @@ namespace DiscordBot.Service.Commands.Modules
     public class RoleAssignationConfiguration : ModuleBase<SocketCommandContext>
     {
 
-        [NotNull]
-        public TelemetryClient Telemetry { get; set; }
+        [NotNull] 
+        private readonly TelemetryClient _telemetry;
+
+        public RoleAssignationConfiguration(TelemetryClient telemetryClient)
+        {
+            this._telemetry = telemetryClient;
+        }
 
         [Command("bind")]
         [Summary("Command used to bing a role to a game name")]
@@ -57,7 +62,6 @@ namespace DiscordBot.Service.Commands.Modules
 
             if (guild == null)
             {
-                //On aurait pu prendre le guild id du before, pas comme si ça allait changer
                 guild = new Guild(role.Guild);
 
                 var tableOp = TableOperation.Insert(guild);
@@ -106,8 +110,10 @@ namespace DiscordBot.Service.Commands.Modules
 
         [Command("list")]
         [Summary("Lists all bindings, if given a role, lists all bindings fo given role")]
-        public async Task List(SocketRole role)
+        public async Task List(SocketRole role = null)
         {
+            this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
+
             this.AuthorizeRoleAdministrator(true);
 
             var guildsTable = await GetTableAndCreate<Guild>();
@@ -118,6 +124,12 @@ namespace DiscordBot.Service.Commands.Modules
 
             if (guild == null)
             {
+                guild = new Guild(role.Guild);
+
+                var tableOp = TableOperation.Insert(guild);
+
+                await guildsTable.ExecuteAsync(tableOp);
+                
                 await this.Context.Channel.SendMessageAsync("Guild (Server) unknown, try adding a binding first");
 
                 return;
@@ -132,7 +144,7 @@ namespace DiscordBot.Service.Commands.Modules
                 bindings = bindings.Where(g => g.Key == role.Id);
             }
 
-            foreach(var roleBindings in bindings)
+            foreach(var roleBindings in bindings.OrderBy(k => k.Key))
             {
                 var discordRole = this.Context.Guild.GetRole(roleBindings.Key);
          
@@ -145,7 +157,7 @@ namespace DiscordBot.Service.Commands.Modules
                 }
 
                 var embedBuilder = new EmbedBuilder()
-                    .WithTitle(discordRole.Name)
+                    .WithTitle($"@{discordRole.Name}")
                     .WithColor(discordRole.Color)
                     .WithDescription(stringBuilder.ToString());
 

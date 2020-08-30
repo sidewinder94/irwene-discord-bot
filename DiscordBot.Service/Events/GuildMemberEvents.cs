@@ -13,7 +13,7 @@ namespace DiscordBot.Service.Events
 {
     public class GuildMemberEvents
     {
-        private TelemetryClient _telemetry;
+        private readonly TelemetryClient _telemetry;
 
         public GuildMemberEvents(TelemetryClient telemetry)
         {

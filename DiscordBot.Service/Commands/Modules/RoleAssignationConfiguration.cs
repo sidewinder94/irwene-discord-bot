@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -111,13 +112,45 @@ namespace DiscordBot.Service.Commands.Modules
 
             var guildsTable = await GetTableAndCreate<Guild>();
 
-            TableQuery<Guild> guildQ;
+            TableQuery<Guild> guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == this.Context.Guild.Id.ToString()).Take(1).AsTableQuery();
 
-            if (role is null)
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+
+            if (guild == null)
             {
-                guildQ = guildsTable.CreateQuery<Guild>().AsTableQuery();
+                await this.Context.Channel.SendMessageAsync("Guild (Server) unknown, try adding a binding first");
+
+                return;
             }
 
+            await guild.LoadChildrens(g => g.RoleAssignations);
+
+            var bindings = guild.RoleAssignations.GroupBy(k => k.RoleId);
+
+            if (role != null)
+            {
+                bindings = bindings.Where(g => g.Key == role.Id);
+            }
+
+            foreach(var roleBindings in bindings)
+            {
+                var discordRole = this.Context.Guild.GetRole(roleBindings.Key);
+         
+                var stringBuilder = new StringBuilder();
+
+                foreach (var binding in roleBindings)
+                {
+                    stringBuilder.AppendLine(
+                        $"{binding.Order}: {binding.GameName} {(binding.IsRegExp ? "as a RegExp" : "")}");
+                }
+
+                var embedBuilder = new EmbedBuilder()
+                    .WithTitle(discordRole.Name)
+                    .WithColor(discordRole.Color)
+                    .WithDescription(stringBuilder.ToString());
+
+                await this.Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
+            }
         }
 
         private bool AuthorizeRoleAdministrator(bool throwOnUnauthorized = false)
@@ -147,7 +180,6 @@ namespace DiscordBot.Service.Commands.Modules
 
             if (guild == null)
             {
-                //On aurait pu prendre le guild id du before, pas comme si ça allait changer
                 guild = new Guild(role.Guild);
 
                 var tableOp = TableOperation.Insert(guild);

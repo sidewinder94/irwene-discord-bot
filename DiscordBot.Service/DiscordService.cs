@@ -23,10 +23,10 @@ namespace DiscordBot.Service
         private DiscordSocketClient _client;
         private CommandHandler _handler;
         private CommandService _commandService;
-        private ILogger<DiscordSocketClient> _clientLogger;
-        private ILogger<CommandService> _commandLogger;
-        private TelemetryClient _telemetry;
-        private IServiceProvider _serviceProvider;
+        private readonly ILogger<DiscordSocketClient> _clientLogger;
+        private readonly ILogger<CommandService> _commandLogger;
+        private readonly TelemetryClient _telemetry;
+        private readonly IServiceProvider _serviceProvider;
 
         public ServiceStatus Status { get; set; }
 

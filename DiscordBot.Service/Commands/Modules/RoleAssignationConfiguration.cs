@@ -57,8 +57,6 @@ namespace DiscordBot.Service.Commands.Modules
         [Summary("Removes all bindings for a given role")]
         public async Task Unbind(SocketRole role, int? order = null)
         {
-            this.AuthorizeRoleAdministrator(true);
-
             var guildsTable = await GetTableAndCreate<Guild>();
 
             var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
@@ -99,7 +97,7 @@ namespace DiscordBot.Service.Commands.Modules
                     }
                 } while (token != null);
 
-                var rbatch = await bindingsTable.ExecuteBatchAsync(batchDelete);
+                await bindingsTable.ExecuteBatchAsync(batchDelete);
             }
             else
             {
@@ -112,6 +110,8 @@ namespace DiscordBot.Service.Commands.Modules
 
                 await bindingsTable.ExecuteAsync(to);
             }
+
+            await this.ConsolidateOrder(guild);
         }
 
         [Command("list")]
@@ -119,8 +119,6 @@ namespace DiscordBot.Service.Commands.Modules
         public async Task List(SocketRole role = null)
         {
             this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
-
-            //this.AuthorizeRoleAdministrator(true);
 
             var guildsTable = await GetTableAndCreate<Guild>();
 
@@ -171,23 +169,32 @@ namespace DiscordBot.Service.Commands.Modules
             }
         }
 
-        private bool AuthorizeRoleAdministrator(bool throwOnUnauthorized = false)
+        [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
+        [RequireOwner(Group = "Permission")]
+        [Command("consolidate")]
+        [Summary("Lists all bindings, if given a role, lists all bindings fo given role")]
+        public async Task Consolidate()
         {
-            var authorized = this.Context.Guild.GetUser(this.Context.Message.Author.Id).Roles.Any(r => r.Permissions.Administrator || r.Permissions.ManageRoles);
+            this._telemetry.TrackEvent($"Order consolidation requested for {this.Context.Guild.Name} ({this.Context.Guild.Id})");
 
-            if (throwOnUnauthorized && !authorized)
+            var guildsTable = await GetTableAndCreate<Guild>();
+
+            TableQuery<Guild> guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == this.Context.Guild.Id.ToString()).Take(1).AsTableQuery();
+
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+
+            if (guild == null)
             {
-                throw new InvalidOperationException("You don't have the required permissions to administer roles");
+                this._telemetry.TrackEvent($"Guild {this.Context.Guild.Name} ({this.Context.Guild.Id}) unknown, doing nothing");
+
+                return;
             }
-            else
-            {
-                return authorized;
-            }
+
+            await this.ConsolidateOrder(guild);
         }
 
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)
         {
-            //this.AuthorizeRoleAdministrator(true);
 
             var guildsTable = await GetTableAndCreate<Guild>();
 
@@ -231,6 +238,32 @@ namespace DiscordBot.Service.Commands.Modules
             await bindingsTable.ExecuteAsync(insertOp);
         }
 
+        private async Task ConsolidateOrder(Guild guild)
+        {
+            if (!guild.RoleAssignations.Any())
+            {
+                await guild.LoadChildrens(g => g.RoleAssignations);
+            }
 
+            var lastOrder = 0;
+
+            var batch = new TableBatchOperation();
+
+            foreach (var roleAssignation in guild.RoleAssignations.OrderBy(ra => ra.Order))
+            {
+                roleAssignation.Order = lastOrder;
+
+                lastOrder += 1;
+
+                batch.Add(TableOperation.Merge(roleAssignation));
+            }
+
+            if (batch.Any())
+            {
+                var bindingsTable = GetTable<RoleAssignation>();
+
+                await bindingsTable.ExecuteBatchAsync(batch);
+            }
+        }
     }
 }

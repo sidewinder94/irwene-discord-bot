@@ -8,11 +8,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordBot.Service", "DiscordBot.Service\DiscordBot.Service.csproj", "{9CF6B46D-FFBA-4B07-9D5F-3654D7EBF58B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{91037A7B-C4A1-4EB0-A9F4-EB6EC4DB8542}"
-	ProjectSection(SolutionItems) = preProject
-		azure-pipelines.yml = azure-pipelines.yml
-	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "irwene-discord-bot-aspcore", "irwene-discord-bot-aspcore\irwene-discord-bot-aspcore.csproj", "{CCA6FDF7-533B-49E7-BAAA-5A3D531FC2A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "irwene-discord-bot-aspcore", "irwene-discord-bot-aspcore\irwene-discord-bot-aspcore.csproj", "{CCA6FDF7-533B-49E7-BAAA-5A3D531FC2A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -29,6 +29,8 @@ namespace DiscordBot.Service.Commands.Modules
             this._telemetry = telemetryClient;
         }
 
+        [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
+        [RequireOwner(Group = "Permission")]
         [Command("bind")]
         [Summary("Command used to bing a role to a game name")]
         public async Task Bind(
@@ -38,6 +40,8 @@ namespace DiscordBot.Service.Commands.Modules
             await this.BindInternal(role, gameName, false);
         }
 
+        [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
+        [RequireOwner(Group = "Permission")]
         [Command("bindr")]
         [Summary("Command used to bind a role as soon as the user presence matches the given regexp")]
         public async Task BindRegExp(
@@ -47,6 +51,8 @@ namespace DiscordBot.Service.Commands.Modules
             await this.BindInternal(role, gameRegExp, true);
         }
 
+        [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
+        [RequireOwner(Group = "Permission")]
         [Command("unbind")]
         [Summary("Removes all bindings for a given role")]
         public async Task Unbind(SocketRole role, int? order = null)
@@ -114,7 +120,7 @@ namespace DiscordBot.Service.Commands.Modules
         {
             this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
 
-            this.AuthorizeRoleAdministrator(true);
+            //this.AuthorizeRoleAdministrator(true);
 
             var guildsTable = await GetTableAndCreate<Guild>();
 
@@ -181,7 +187,7 @@ namespace DiscordBot.Service.Commands.Modules
 
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)
         {
-            this.AuthorizeRoleAdministrator(true);
+            //this.AuthorizeRoleAdministrator(true);
 
             var guildsTable = await GetTableAndCreate<Guild>();
 

@@ -240,9 +240,15 @@ namespace DiscordBot.Service.Commands.Modules
 
         private async Task ConsolidateOrder(Guild guild)
         {
-            if (!guild.RoleAssignations.Any())
+            if (guild.RoleAssignations == null || !guild.RoleAssignations.Any())
             {
                 await guild.LoadChildrens(g => g.RoleAssignations);
+            }
+
+            if (!guild.RoleAssignations.Any())
+            {
+                this._telemetry.TrackEvent("No roles to reorder, finishing");
+                return;
             }
 
             var lastOrder = 0;

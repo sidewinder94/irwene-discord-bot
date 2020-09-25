@@ -255,7 +255,7 @@ namespace DiscordBot.Service.Commands.Modules
 
                 lastOrder += 1;
 
-                batch.Add(TableOperation.Merge(roleAssignation));
+                batch.Merge(roleAssignation);
             }
 
             if (batch.Any())

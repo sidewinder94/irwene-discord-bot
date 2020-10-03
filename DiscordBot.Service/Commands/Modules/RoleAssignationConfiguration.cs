@@ -193,6 +193,13 @@ namespace DiscordBot.Service.Commands.Modules
             await this.ConsolidateOrder(guild);
         }
 
+        [RequireOwner]
+        [Command(nameof(Error))]
+        public async Task Error()
+        {
+            throw new ArgumentException();
+        }
+
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)
         {
 

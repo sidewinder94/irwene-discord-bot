@@ -197,7 +197,11 @@ namespace DiscordBot.Service.Commands.Modules
         [Command(nameof(Error))]
         public async Task Error()
         {
-            throw new ArgumentException();
+            var ex = new ArgumentException();
+
+            this._telemetry.TrackException(ex);
+
+            throw ex;
         }
 
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)

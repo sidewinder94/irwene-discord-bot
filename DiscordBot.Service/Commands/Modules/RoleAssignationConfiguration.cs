@@ -29,10 +29,64 @@ namespace DiscordBot.Service.Commands.Modules
             this._telemetry = telemetryClient;
         }
 
+        [Command("remove")]
+        [Summary("Command used to remove a role from the current user")]
+        public async Task Remove(
+            [Summary("Role to remove, should be one managed by the bot")] SocketRole roleToRemove,
+            [Summary("If the bot should remember that the user does not want the role")] bool forever)
+        {
+            var guildsTable = await GetTableAndCreate<Guild>();
+
+            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == roleToRemove.Guild.Id.ToString()).Take(1)
+                .AsTableQuery();
+
+            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+
+            if (guild == null)
+            {
+                guild = new Guild(roleToRemove.Guild);
+
+                var tableOp = TableOperation.Insert(guild);
+
+                await guildsTable.ExecuteAsync(tableOp);
+
+                //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
+                return;
+            }
+
+            var bindingsTable = await GetTableAndCreate<RoleAssignation>();
+
+            var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
+                ass.PartitionKey == roleToRemove.Guild.Id.ToString() && ass.RoleStorage == (long)roleToRemove.Id).Take(1).AsTableQuery();
+
+            var roleBinding = bindingsTable.ExecuteQuery(roleBindingsQuery).FirstOrDefault();
+
+            if (roleBinding == null)
+            {
+                this._telemetry.TrackTrace(
+                    $"Bot was asked by user {this.Context.User.Username}#{this.Context.User.Discriminator} to remove the role " +
+                    $"{roleToRemove.Name} which is not managed by this bot for the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
+
+                return;
+            }
+
+            var user = this.Context.Guild.GetUser(this.Context.User.Id);
+
+            if (user == null)
+            {
+                this._telemetry.TrackTrace(
+                    $"User {this.Context.User.Username}#{this.Context.User.Discriminator} cannot be found in the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
+
+                return;
+            }
+
+            await user.RemoveRoleAsync(roleToRemove, new RequestOptions { AuditLogReason = "Requested to the bot by the user"});
+        }
+
         [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
         [RequireOwner(Group = "Permission")]
         [Command("bind")]
-        [Summary("Command used to bing a role to a game name")]
+        [Summary("Command used to bind a role to a game name")]
         public async Task Bind(
             [Summary("Role to attribute")] SocketRole role,
             [Summary("Game name to watch for")][Remainder] string gameName)

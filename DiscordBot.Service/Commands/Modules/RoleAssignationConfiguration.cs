@@ -33,7 +33,7 @@ namespace DiscordBot.Service.Commands.Modules
         [Summary("Command used to remove a role from the current user")]
         public async Task Remove(
             [Summary("Role to remove, should be one managed by the bot")] SocketRole roleToRemove,
-            [Summary("If the bot should remember that the user does not want the role")] bool forever)
+            [Summary("If the bot should remember that the user does not want the role")] bool forever = false)
         {
             var guildsTable = await GetTableAndCreate<Guild>();
 

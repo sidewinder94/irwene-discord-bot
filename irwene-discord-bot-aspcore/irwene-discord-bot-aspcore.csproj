@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>irwene_discord_bot_aspcore</RootNamespace>
     <UserSecretsId>ec353699-3eba-482f-abbf-28560f5c01ff</UserSecretsId>
     <ApplicationInsightsResourceId>/subscriptions/a56715db-41eb-4564-8038-efbeace8b97d/resourcegroups/Perso/providers/microsoft.insights/components/as-irwene-discord-bot</ApplicationInsightsResourceId>

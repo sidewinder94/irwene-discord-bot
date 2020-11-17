@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.SnapshotCollector;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -63,6 +64,12 @@ namespace irwene_discord_bot_aspcore
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 

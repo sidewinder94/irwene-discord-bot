@@ -52,7 +52,7 @@ namespace irwene_discord_bot_aspcore
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime, ILoggerFactory loggerFactory)
         {
             var service = app.ApplicationServices.GetService<DiscordService>();
-            
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -61,8 +61,13 @@ namespace irwene_discord_bot_aspcore
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
+                
+                if (Configuration["HSTS_STATUS"] != "Disabled")
+                {
+                    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                    app.UseHsts();
+                    app.UseHttpsRedirection();
+                }
             }
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -70,7 +75,6 @@ namespace irwene_discord_bot_aspcore
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();

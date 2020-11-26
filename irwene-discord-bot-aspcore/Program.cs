@@ -39,7 +39,7 @@ namespace irwene_discord_bot_aspcore
            
            .ConfigureAppConfiguration((context, config) =>
            {
-               var keyVaultEndpoint = GetKeyVaultEndpoint();
+               var keyVaultEndpoint = config.Build()["EndPoints:AzureKeyVault"];
                if (!string.IsNullOrEmpty(keyVaultEndpoint))
                {
                    var azureServiceTokenProvider = new AzureServiceTokenProvider();
@@ -53,6 +53,5 @@ namespace irwene_discord_bot_aspcore
            {
                webBuilder.UseStartup<Startup>();
            });
-        private static string GetKeyVaultEndpoint() => "https://kv-discord-bot.vault.azure.net/";
     }
 }

@@ -29,6 +29,14 @@ namespace DiscordBot.Service.Events
                 return;
             }
 
+            // Try to lock the user
+            if (!await ResourceLock.AcquireLock($"{after.Id}"))
+            {
+                // If we can't another client is already handling it
+                this._telemetry.TrackEvent($"Lock failed on user {after.Id} ({after.Username}#{after.DiscriminatorValue})");
+                return;
+            }
+
             this._telemetry.TrackEvent("Handling a user status update");
 
             var guildsTable = await GetTableAndCreate<Guild>();

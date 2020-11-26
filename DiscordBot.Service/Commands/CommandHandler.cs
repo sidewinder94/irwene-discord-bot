@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot.Service.Model;
+using Microsoft.ApplicationInsights;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordBot.Service.Commands
 {
@@ -59,6 +60,14 @@ namespace DiscordBot.Service.Commands
 
             // Create a WebSocket-based command context based on the message
             var context = new SocketCommandContext(_client, message);
+
+            // We try to lock the channel so that only one Discord Client instance handles the message
+            if (!await ResourceLock.AcquireLock(messageParam.Channel.Id.ToString()))
+            {
+                // If we didn't manage to acquire the lock, we don't do a thing, another client should already be working on it
+                DiscordService.ServiceProvider.GetService<TelemetryClient>().TrackEvent($"Lock failed on channel {messageParam.Channel.Id} ({messageParam.Channel.Name})");
+                return;
+            }
 
             // Execute the command with the command context we just
             // created, along with the service provider for precondition checks.

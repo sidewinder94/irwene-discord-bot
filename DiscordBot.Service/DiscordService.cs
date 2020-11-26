@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -10,7 +7,6 @@ using DiscordBot.Service.Commands;
 using DiscordBot.Service.Model;
 using DiscordBot.Service.Enums;
 using DiscordBot.Service.Events;
-using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ApplicationInsights;
@@ -19,26 +15,28 @@ namespace DiscordBot.Service
 {
     public class DiscordService
     {
-        private readonly IConfiguration _config;
+        internal static IConfiguration Config { get; private set; }
+        internal static IServiceProvider ServiceProvider { get; private set; }
         private DiscordSocketClient _client;
         private CommandHandler _handler;
         private CommandService _commandService;
         private readonly ILogger<DiscordSocketClient> _clientLogger;
         private readonly ILogger<CommandService> _commandLogger;
         private readonly TelemetryClient _telemetry;
-        private readonly IServiceProvider _serviceProvider;
+        
 
         public ServiceStatus Status { get; set; }
 
         public DiscordService(IConfiguration configuration, ILogger<DiscordSocketClient> clientLogger, ILogger<CommandService> commandLogger, TelemetryClient telemetry, IServiceProvider serviceProvider)
         {
-            this._config = configuration;
+            Config = configuration;
+            ServiceProvider = serviceProvider;
             TableEntityExtensions.Configuration = configuration;
             TableEntityExtensions.TelemetryClient = telemetry;
             this._clientLogger = clientLogger;
             this._commandLogger = commandLogger;
             this._telemetry = telemetry;
-            this._serviceProvider = serviceProvider;
+            
         }
 
         private async Task StartAsync()
@@ -64,7 +62,7 @@ namespace DiscordBot.Service
 
                 this._commandService.Log += CommandLog;
 
-                this._handler = new CommandHandler(this._client, this._commandService, this._serviceProvider);
+                this._handler = new CommandHandler(this._client, this._commandService, ServiceProvider);
 
                 await this._handler.InstallCommandsAsync();
 
@@ -76,7 +74,7 @@ namespace DiscordBot.Service
             if (_client.LoginState != LoginState.LoggedIn)
             {
                 this._telemetry.TrackEvent("Logging in");
-                await this._client.LoginAsync(TokenType.Bot, token: _config["discord-bot-token"]);
+                await this._client.LoginAsync(TokenType.Bot, token: Config["discord-bot-token"]);
             }
 
             await this._client.StartAsync();

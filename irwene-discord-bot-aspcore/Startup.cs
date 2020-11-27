@@ -9,6 +9,7 @@ using irwene_discord_bot_aspcore.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.ApplicationInsights.SnapshotCollector;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 
 namespace irwene_discord_bot_aspcore
 {
@@ -26,6 +27,8 @@ namespace irwene_discord_bot_aspcore
         {
             services.AddApplicationInsightsTelemetry(instrumentationKey: Configuration["appinsight-instr-key"]);
 
+            services.ConfigureTelemetryModule<QuickPulseTelemetryModule>((module, o) => module.AuthenticationApiKey = Configuration["appinsights-authentication-apikey"]);
+
             services.AddControllersWithViews();
 
             services.AddAzureClients(builder =>
@@ -38,7 +41,7 @@ namespace irwene_discord_bot_aspcore
             services.AddSingleton<BackgroundDiscordService>();
             services.AddHostedService(provider => provider.GetService<BackgroundDiscordService>());
 
-            services.AddSnapshotCollector((configuration) => Configuration.Bind(nameof(SnapshotCollectorConfiguration), configuration));
+            services.AddSnapshotCollector((configuration) => Configuration.Bind(nameof(SnapshotCollectorConfiguration), configuration));         
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

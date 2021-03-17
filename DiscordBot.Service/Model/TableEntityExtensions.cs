@@ -157,5 +157,92 @@ namespace DiscordBot.Service.Model
 
             propInfo.SetValue(parent, result);
         }
+
+        public static async Task<IQueryable<TEntity>> SearchAndCreateTableAsync<TEntity>(Expression<Func<TEntity, bool>> searchExpression) where TEntity : TableEntity, new()
+        {
+            var table = await GetTableAndCreate<TEntity>();
+
+            return table.CreateQuery<TEntity>().Where(searchExpression);
+        }
+
+        public static IQueryable<TEntity> SearchTable<TEntity>(Expression<Func<TEntity, bool>> searchExpression) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            return table.CreateQuery<TEntity>().Where(searchExpression);
+        }
+
+        public static TEntity GetOne<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            return query.Take(1).AsTableQuery().Execute().FirstOrDefault();
+        }
+
+        public static async Task<IList<TEntity>> GetCollectionAsync<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            return await query.GetCollectionAsyncInternal().ToListAsync();
+        }
+
+        private static async IAsyncEnumerable<TEntity> GetCollectionAsyncInternal<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            var tableQuery = query.AsTableQuery();
+
+            TableContinuationToken token = null;
+
+            do
+            {
+                var partialResult = await tableQuery.ExecuteSegmentedAsync(token);
+
+                token = partialResult.ContinuationToken;
+
+                foreach (var result in partialResult.Results)
+                {
+                    yield return result;
+                }
+
+            } while (token != null);
+        }
+
+        public static async Task InsertAsync<TEntity>(this TEntity entity) where TEntity : TableEntity, new()
+        {
+            var table = await GetTableAndCreate<TEntity>();
+
+            var tableOp = TableOperation.Insert(entity);
+
+            await table.ExecuteAsync(tableOp);
+        }
+
+        public static async Task DeleteAsync<TEntity>(this TEntity entity) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            var tableOp = TableOperation.Delete(entity);
+
+            await table.ExecuteAsync(tableOp);
+        }
+
+        public static async Task DeleteBatchAsync<TEntity>(Expression<Func<TEntity, bool>> filter) where TEntity : TableEntity, new()
+        {
+            var table = await GetTableAndCreate<TEntity>();
+
+            var filterQuery = table.CreateQuery<TEntity>().Where(filter).AsTableQuery();
+
+            var batchDelete = new TableBatchOperation();
+
+            TableContinuationToken token = null;
+            do
+            {
+                var partialResult = await table.ExecuteQuerySegmentedAsync(filterQuery, token);
+                
+                token = partialResult.ContinuationToken;
+
+                foreach (var result in partialResult)
+                {
+                    batchDelete.Delete(result);
+                }
+
+            } while (token != null);
+
+            await table.ExecuteBatchAsync(batchDelete);
+        }
     }
 }

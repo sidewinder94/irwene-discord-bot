@@ -320,7 +320,7 @@ namespace DiscordBot.Service.Commands.Modules
 
             var batch = new TableBatchOperation();
 
-            foreach (var roleAssignation in guild.RoleAssignations.OrderBy(ra => ra.Order))
+            foreach (var roleAssignation in guild.RoleAssignations.OrderBy(ra => ra.Order).ToList())
             {
                 roleAssignation.Order = lastOrder;
 

@@ -5,8 +5,6 @@ using Discord;
 using Discord.WebSocket;
 using DiscordBot.Service.Model;
 using Microsoft.ApplicationInsights;
-using Microsoft.Azure.Cosmos.Table;
-using Microsoft.Azure.Cosmos.Table.Queryable;
 using static DiscordBot.Service.Model.TableEntityExtensions;
 
 namespace DiscordBot.Service.Events
@@ -39,21 +37,14 @@ namespace DiscordBot.Service.Events
 
             this._telemetry.TrackEvent("Handling a user status update");
 
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == after.Guild.Id.ToString()).Take(1)
-                .AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == after.Guild.Id.ToString()).GetOneAsync();
 
             if (guild == null)
             {
                 //On aurait pu prendre le guild id du before, pas comme si ça allait changer
                 guild = new Guild(after.Guild);
 
-                var tableOp = TableOperation.InsertOrMerge(guild);
-
-                await guildsTable.ExecuteAsync(tableOp);
+                await guild.InsertAsync();
 
                 //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
                 return;

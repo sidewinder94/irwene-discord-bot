@@ -27,15 +27,15 @@ namespace DiscordBot.Service.Model
 
         public bool IsRegExp { get; set; }
 
+        public long Order { get; set; }
+
         [IgnoreProperty]
         public ulong RoleId
         {
-            set => RoleStorage = (long)value;
-            get => (ulong)RoleStorage;
+            set => RoleStorage = (long) value;
+            get => (ulong) RoleStorage;
         }
 
-        public long Order { get; set; }
-        
         [IgnoreProperty]
         [Parent(parentType: typeof(Guild))]
         public Guild Guild { get; set; }

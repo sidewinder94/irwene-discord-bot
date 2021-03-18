@@ -34,5 +34,8 @@ namespace DiscordBot.Service.Model
 
         [IgnoreProperty]
         public ICollection<RoleAssignation> RoleAssignations { get; set; }
+
+        [IgnoreProperty]
+        public ICollection<UserAssignableRoles> AssignableRoles { get; set; }
     }
 }

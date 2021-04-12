@@ -119,13 +119,13 @@ namespace DiscordBot.Service.Commands.Modules
             if (!order.HasValue)
             {
                 await DeleteBatchAsync<RoleAssignation>(ass =>
-                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long) role.Id);
+                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id);
             }
             else
             {
-                var roleBinding = 
-                    await SearchTable<RoleAssignation>(ass => ass.PartitionKey == role.Guild.Id.ToString() 
-                                                              && ass.RoleStorage == (long) role.Id 
+                var roleBinding =
+                    await SearchTable<RoleAssignation>(ass => ass.PartitionKey == role.Guild.Id.ToString()
+                                                              && ass.RoleStorage == (long)role.Id
                                                               && ass.Order == order.Value)
                     .GetOneAsync();
 
@@ -203,6 +203,60 @@ namespace DiscordBot.Service.Commands.Modules
             }
 
             await this.ConsolidateOrder(guild);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
+        [Command(nameof(AllowAssign))]
+        public async Task AllowAssign(SocketRole fromRole, SocketRole assignableRole)
+        {
+            var guild = await SearchTable<Guild>(g => g.RowKey == fromRole.Guild.Id.ToString())
+                .GetOneAsync();
+
+            if (guild == null)
+            {
+                guild = new Guild(fromRole.Guild);
+
+                await guild.InsertAsync();
+            }
+
+            await guild.LoadChildrens(g => g.AssignableRoles);
+
+            if (guild.AssignableRoles.Any(ar => ar.FromRoleId == fromRole.Id && ar.TargetRoleId == assignableRole.Id))
+            {
+                this._telemetry.TrackEvent($"Allow Assign called with already authorized role assignation on guild {fromRole.Guild.Name}:{fromRole.Guild.Id} for {fromRole.Name}:{fromRole.Id} to assign {assignableRole.Name}:{assignableRole.Id}");
+                return;
+            }
+
+            var newAssignableRole = new UserAssignableRoles(guild, assignableRole, fromRole);
+            await newAssignableRole.InsertAsync();
+        }
+
+        [Command(nameof(Assign))]
+        public async Task Assign(SocketRole targetRole, SocketGuildUser targetUser)
+        {
+            var roleAssignations = await SearchTable<UserAssignableRoles>(uar => uar.PartitionKey == targetRole.Guild.Id.ToString() && uar.TargetRoleId == targetRole.Id).GetCollectionAsync();
+
+            if(!roleAssignations.Any())
+            {
+                this._telemetry.TrackEvent($"No existing role assignations for guild {targetRole.Guild.Name}:{targetRole.Guild.Id}");
+                return;
+            }
+
+            var callerRoles = this.Context.Guild.GetUser(this.Context.User.Id)?.Roles;
+            
+            if(callerRoles == null)
+            {
+                this._telemetry.TrackEvent($"Uknown user {targetUser.Nickname}:{targetUser.Id} on guild {targetRole.Guild.Name}:{targetRole.Guild.Id}");
+                return;
+            }
+
+            if(roleAssignations.Any(ra => callerRoles.Select(cr => cr.Id).Contains(ra.FromRoleId)))
+            {
+                await targetUser.AddRoleAsync(targetRole, RequestOptions.Default);
+                return;
+            }
+
+            this._telemetry.TrackEvent($"Role {targetRole.Name}:{targetRole.Id} cannot be assigned by {this.Context.User.Username}# {this.Context.User.Discriminator}:{this.Context.User.Id}, missing role");
         }
 
         [RequireOwner]

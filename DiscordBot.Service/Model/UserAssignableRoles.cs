@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Discord;
 using Microsoft.Azure.Cosmos.Table;
 
@@ -17,6 +15,8 @@ namespace DiscordBot.Service.Model
             this.PartitionKey = guild.RowKey;
             this.RowKey = Guid.NewGuid().ToString();
             this.Guild = guild;
+            this.TargetRole = targetRole;
+            this.FromRole = fromRole;
         }
 
         private IRole targetRole;

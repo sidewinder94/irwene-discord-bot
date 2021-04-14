@@ -141,7 +141,7 @@ namespace DiscordBot.Service.Commands.Modules
         {
             this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
 
-            var guild = await SearchTable<Guild>(g => g.RowKey == role.Guild.Id.ToString())
+            var guild = await SearchTable<Guild>(g => g.RowKey == this.Context.Guild.Id.ToString())
                 .GetOneAsync();
 
             if (guild == null)

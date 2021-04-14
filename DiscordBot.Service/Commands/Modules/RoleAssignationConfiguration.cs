@@ -136,7 +136,7 @@ namespace DiscordBot.Service.Commands.Modules
         }
 
         [Command("list")]
-        [Summary("Lists all bindings, if given a role, lists all bindings fo given role")]
+        [Summary("Lists all bindings, if given a role, lists all bindings for given role")]
         public async Task List(SocketRole role = null)
         {
             this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
@@ -234,7 +234,7 @@ namespace DiscordBot.Service.Commands.Modules
         [Command(nameof(Assign))]
         public async Task Assign(SocketRole targetRole, SocketGuildUser targetUser)
         {
-            var roleAssignations = await SearchTable<UserAssignableRoles>(uar => uar.PartitionKey == targetRole.Guild.Id.ToString() && uar.TargetRoleId == targetRole.Id).GetCollectionAsync();
+            var roleAssignations = await SearchTable<UserAssignableRoles>(uar => uar.PartitionKey == targetRole.Guild.Id.ToString() && uar.TargetRoleStorage == (long)targetRole.Id).GetCollectionAsync();
 
             if(!roleAssignations.Any())
             {
@@ -257,6 +257,29 @@ namespace DiscordBot.Service.Commands.Modules
             }
 
             this._telemetry.TrackEvent($"Role {targetRole.Name}:{targetRole.Id} cannot be assigned by {this.Context.User.Username}# {this.Context.User.Discriminator}:{this.Context.User.Id}, missing role");
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
+        [Command(nameof(RemoveAssign))]
+        public async Task<RuntimeResult> RemoveAssign(SocketRole fromRole, SocketRole assignableRole)
+        {
+            var roles =
+                await SearchTable<UserAssignableRoles>(uar =>
+                    uar.PartitionKey == this.Context.Guild.Id.ToString()
+                    && uar.FromRoleStorage == (long)fromRole.Id
+                    && uar.TargetRoleStorage == (long)assignableRole.Id).GetCollectionAsync();
+
+            if (!roles.Any())
+            {
+                return CommandResult.FromError("No roles to delete");
+            }
+
+            foreach (var role in roles)
+            {
+                await role.DeleteAsync();
+            }
+
+            return CommandResult.FromSuccess();
         }
 
         [RequireOwner]

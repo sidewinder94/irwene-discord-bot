@@ -8,7 +8,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace DiscordBot.Service.Model
@@ -30,28 +29,6 @@ namespace DiscordBot.Service.Model
         public static IConfiguration Configuration;
 
         public static TelemetryClient TelemetryClient;
-
-        private static PropertyInfo GetPropertyInfo<TSource, TProperty>(Expression<Func<TSource, TProperty>> propertyLambda)
-        {
-            Type type = typeof(TSource);
-
-            MemberExpression member = propertyLambda.Body as MemberExpression;
-            if (member == null)
-                throw new ArgumentException(
-                    $"Expression '{propertyLambda}' refers to a method, not a property.");
-
-            PropertyInfo propInfo = member.Member as PropertyInfo;
-            if (propInfo == null)
-                throw new ArgumentException(
-                    $"Expression '{propertyLambda}' refers to a field, not a property.");
-
-            if (type != propInfo.ReflectedType &&
-                !type.IsSubclassOf(propInfo.ReflectedType))
-                throw new ArgumentException(
-                    $"Expression '{propertyLambda}' refers to a property that is not from type {type}.");
-
-            return propInfo;
-        }
 
         public static CloudTable GetTable<T>() where T : TableEntity
         {
@@ -96,7 +73,7 @@ namespace DiscordBot.Service.Model
 
             var query = table.CreateQuery<TChild>().Where(child => child.PartitionKey == parent.RowKey).AsTableQuery();
 
-            List<TChild> result = new List<TChild>();
+            List<TChild> result = new();
 
             TableContinuationToken token = null;
             do
@@ -156,6 +133,137 @@ namespace DiscordBot.Service.Model
             }
 
             propInfo.SetValue(parent, result);
+        }
+
+        public static async Task<IQueryable<TEntity>> SearchAndCreateTableAsync<TEntity>(Expression<Func<TEntity, bool>> searchExpression) where TEntity : TableEntity, new()
+        {
+            var table = await GetTableAndCreate<TEntity>();
+
+            return table.CreateQuery<TEntity>().Where(searchExpression);
+        }
+
+        public static IQueryable<TEntity> SearchTable<TEntity>(Expression<Func<TEntity, bool>> searchExpression) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            return table.CreateQuery<TEntity>().Where(searchExpression);
+        }
+
+        public static async Task<TEntity> GetOneAsync<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            if (await table.ExistsAsync())
+            {
+                return query.Take(1).AsTableQuery().Execute().FirstOrDefault();
+            }
+
+            return null;
+        }
+
+        public static async Task<IList<TEntity>> GetCollectionAsync<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            return await query.GetCollectionAsyncInternal().ToListAsync();
+        }
+
+        public static async Task InsertAsync<TEntity>(this TEntity entity) where TEntity : TableEntity, new()
+        {
+            var table = await GetTableAndCreate<TEntity>();
+
+            var tableOp = TableOperation.Insert(entity);
+
+            await table.ExecuteAsync(tableOp);
+        }
+
+        public static async Task DeleteAsync<TEntity>(this TEntity entity) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            if (await table.ExistsAsync())
+            {
+                var tableOp = TableOperation.Delete(entity);
+
+                await table.ExecuteAsync(tableOp);
+            }
+        }
+
+        public static async Task DeleteBatchAsync<TEntity>(Expression<Func<TEntity, bool>> filter) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            if (!await table.ExistsAsync())
+            {
+                return;
+            }
+
+            var filterQuery = table.CreateQuery<TEntity>().Where(filter).AsTableQuery();
+
+            var batchDelete = new TableBatchOperation();
+
+            TableContinuationToken token = null;
+            do
+            {
+                var partialResult = await table.ExecuteQuerySegmentedAsync(filterQuery, token);
+                
+                token = partialResult.ContinuationToken;
+
+                foreach (var result in partialResult)
+                {
+                    batchDelete.Delete(result);
+                }
+
+            } while (token != null);
+
+            await table.ExecuteBatchAsync(batchDelete);
+        }
+
+        private static PropertyInfo GetPropertyInfo<TSource, TProperty>(Expression<Func<TSource, TProperty>> propertyLambda)
+        {
+            Type type = typeof(TSource);
+
+            MemberExpression member = propertyLambda.Body as MemberExpression;
+            if (member == null)
+                throw new ArgumentException(
+                    $"Expression '{propertyLambda}' refers to a method, not a property.");
+
+            PropertyInfo propInfo = member.Member as PropertyInfo;
+            if (propInfo == null)
+                throw new ArgumentException(
+                    $"Expression '{propertyLambda}' refers to a field, not a property.");
+
+            if (type != propInfo.ReflectedType &&
+                !type.IsSubclassOf(propInfo.ReflectedType))
+                throw new ArgumentException(
+                    $"Expression '{propertyLambda}' refers to a property that is not from type {type}.");
+
+            return propInfo;
+        }
+
+        private static async IAsyncEnumerable<TEntity> GetCollectionAsyncInternal<TEntity>(this IQueryable<TEntity> query) where TEntity : TableEntity, new()
+        {
+            var table = GetTable<TEntity>();
+
+            if (!await table.ExistsAsync())
+            {
+                yield break;
+            }
+
+            var tableQuery = query.AsTableQuery();
+
+            TableContinuationToken token = null;
+
+            do
+            {
+                var partialResult = await tableQuery.ExecuteSegmentedAsync(token);
+
+                token = partialResult.ContinuationToken;
+
+                foreach (var result in partialResult.Results)
+                {
+                    yield return result;
+                }
+
+            } while (token != null);
         }
     }
 }

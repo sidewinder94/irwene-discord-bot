@@ -16,7 +16,7 @@ namespace DiscordBot.Service.Model
 {
     public static class ResourceLock
     {
-        private static readonly ConcurrentDictionary<string, BlobLease> ResourceLeases = new ConcurrentDictionary<string, BlobLease>();
+        private static readonly ConcurrentDictionary<string, BlobLease> ResourceLeases = new();
 
 
         public static async Task<bool> AcquireLock(string ressourceId)

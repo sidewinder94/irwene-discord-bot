@@ -10,6 +10,7 @@ using DiscordBot.Service.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 
 namespace DiscordBot.Service
 {
@@ -62,7 +63,7 @@ namespace DiscordBot.Service
 
                 this._commandService.Log += CommandLog;
 
-                this._handler = new CommandHandler(this._client, this._commandService, ServiceProvider);
+                this._handler = new CommandHandler(this._client, this._commandService, ServiceProvider, this._telemetry);
 
                 await this._handler.InstallCommandsAsync();
 
@@ -73,7 +74,7 @@ namespace DiscordBot.Service
 
             if (_client.LoginState != LoginState.LoggedIn)
             {
-                this._telemetry.TrackEvent("Logging in");
+                this._telemetry.TrackTrace("Logging in", SeverityLevel.Verbose);
                 await this._client.LoginAsync(TokenType.Bot, token: Config["discord-bot-token"]);
             }
 
@@ -124,6 +125,7 @@ namespace DiscordBot.Service
                 #endregion
 
                 logger.Log(level, logMessage.Exception, $"Source : {logMessage.Source} ; Message: {logMessage.Message}");
+                
             });
         }
 

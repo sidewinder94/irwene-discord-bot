@@ -21,7 +21,7 @@ namespace DiscordBot.Service.Commands.Modules
     public class RoleAssignationConfiguration : ModuleBase<SocketCommandContext>
     {
 
-        [NotNull] 
+        [NotNull]
         private readonly TelemetryClient _telemetry;
 
         public RoleAssignationConfiguration(TelemetryClient telemetryClient)
@@ -35,31 +35,23 @@ namespace DiscordBot.Service.Commands.Modules
             [Summary("Role to remove, should be one managed by the bot")] SocketRole roleToRemove,
             [Summary("If the bot should remember that the user does not want the role")] bool forever = false)
         {
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == roleToRemove.Guild.Id.ToString()).Take(1)
-                .AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == roleToRemove.Guild.Id.ToString())
+                .GetOneAsync();
 
             if (guild == null)
             {
                 guild = new Guild(roleToRemove.Guild);
 
-                var tableOp = TableOperation.Insert(guild);
-
-                await guildsTable.ExecuteAsync(tableOp);
+                await guild.InsertAsync();
 
                 //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
                 return;
             }
 
-            var bindingsTable = await GetTableAndCreate<RoleAssignation>();
-
-            var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                ass.PartitionKey == roleToRemove.Guild.Id.ToString() && ass.RoleStorage == (long)roleToRemove.Id).Take(1).AsTableQuery();
-
-            var roleBinding = bindingsTable.ExecuteQuery(roleBindingsQuery).FirstOrDefault();
+            var roleBinding =
+                await SearchTable<RoleAssignation>(ass => ass.PartitionKey == roleToRemove.Guild.Id.ToString()
+                                                          && ass.RoleStorage == (long)roleToRemove.Id)
+                    .GetOneAsync();
 
             if (roleBinding == null)
             {
@@ -80,7 +72,7 @@ namespace DiscordBot.Service.Commands.Modules
                 return;
             }
 
-            await user.RemoveRoleAsync(roleToRemove, new RequestOptions { AuditLogReason = "Requested to the bot by the user"});
+            await user.RemoveRoleAsync(roleToRemove, new RequestOptions { AuditLogReason = "Requested to the bot by the user" });
         }
 
         [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
@@ -111,85 +103,54 @@ namespace DiscordBot.Service.Commands.Modules
         [Summary("Removes all bindings for a given role")]
         public async Task Unbind(SocketRole role, int? order = null)
         {
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
-                .AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == role.Guild.Id.ToString())
+                .GetOneAsync();
 
             if (guild == null)
             {
                 guild = new Guild(role.Guild);
 
-                var tableOp = TableOperation.Insert(guild);
-
-                await guildsTable.ExecuteAsync(tableOp);
+                await guild.InsertAsync();
 
                 //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
                 return;
             }
 
-            var bindingsTable = await GetTableAndCreate<RoleAssignation>();
-
             if (!order.HasValue)
             {
-                var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id).AsTableQuery();
-
-                var batchDelete = new TableBatchOperation();
-
-                TableContinuationToken token = null;
-                do
-                {
-                    var partialResult = await bindingsTable.ExecuteQuerySegmentedAsync(roleBindingsQuery, token);
-                    token = partialResult.ContinuationToken;
-
-                    foreach (var result in partialResult)
-                    {
-                        batchDelete.Delete(result);
-                    }
-                } while (token != null);
-
-                await bindingsTable.ExecuteBatchAsync(batchDelete);
+                await DeleteBatchAsync<RoleAssignation>(ass =>
+                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id);
             }
             else
             {
-                var roleBindingsQuery = bindingsTable.CreateQuery<RoleAssignation>().Where(ass =>
-                    ass.PartitionKey == role.Guild.Id.ToString() && ass.RoleStorage == (long)role.Id && ass.Order == order.Value).Take(1).AsTableQuery();
+                var roleBinding =
+                    await SearchTable<RoleAssignation>(ass => ass.PartitionKey == role.Guild.Id.ToString()
+                                                              && ass.RoleStorage == (long)role.Id
+                                                              && ass.Order == order.Value)
+                    .GetOneAsync();
 
-                var roleBinding = bindingsTable.ExecuteQuery(roleBindingsQuery).FirstOrDefault();
-
-                var to = TableOperation.Delete(roleBinding);
-
-                await bindingsTable.ExecuteAsync(to);
+                await roleBinding.DeleteAsync();
             }
 
             await this.ConsolidateOrder(guild);
         }
 
         [Command("list")]
-        [Summary("Lists all bindings, if given a role, lists all bindings fo given role")]
+        [Summary("Lists all bindings, if given a role, lists all bindings for given role")]
         public async Task List(SocketRole role = null)
         {
             this._telemetry.TrackEvent($"Binding list requested for Guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
 
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            TableQuery<Guild> guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == this.Context.Guild.Id.ToString()).Take(1).AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == role.Guild.Id.ToString())
+                .GetOneAsync();
 
             if (guild == null)
             {
                 guild = new Guild(role.Guild);
 
-                var tableOp = TableOperation.Insert(guild);
+                await guild.InsertAsync();
 
-                await guildsTable.ExecuteAsync(tableOp);
-                
-                await this.Context.Channel.SendMessageAsync("Guild (Server) unknown, try adding a binding first");
-
+                //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
                 return;
             }
 
@@ -202,10 +163,10 @@ namespace DiscordBot.Service.Commands.Modules
                 bindings = bindings.Where(g => g.Key == role.Id);
             }
 
-            foreach(var roleBindings in bindings.OrderBy(k => k.Key))
+            foreach (var roleBindings in bindings.OrderBy(k => k.Key))
             {
                 var discordRole = this.Context.Guild.GetRole(roleBindings.Key);
-         
+
                 var stringBuilder = new StringBuilder();
 
                 foreach (var binding in roleBindings)
@@ -231,11 +192,8 @@ namespace DiscordBot.Service.Commands.Modules
         {
             this._telemetry.TrackEvent($"Order consolidation requested for {this.Context.Guild.Name} ({this.Context.Guild.Id})");
 
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            TableQuery<Guild> guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == this.Context.Guild.Id.ToString()).Take(1).AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == this.Context.Guild.Id.ToString())
+                .GetOneAsync();
 
             if (guild == null)
             {
@@ -247,6 +205,83 @@ namespace DiscordBot.Service.Commands.Modules
             await this.ConsolidateOrder(guild);
         }
 
+        [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
+        [Command(nameof(AllowAssign))]
+        public async Task AllowAssign(SocketRole fromRole, SocketRole assignableRole)
+        {
+            var guild = await SearchTable<Guild>(g => g.RowKey == fromRole.Guild.Id.ToString())
+                .GetOneAsync();
+
+            if (guild == null)
+            {
+                guild = new Guild(fromRole.Guild);
+
+                await guild.InsertAsync();
+            }
+
+            await guild.LoadChildrens(g => g.AssignableRoles);
+
+            if (guild.AssignableRoles.Any(ar => ar.FromRoleId == fromRole.Id && ar.TargetRoleId == assignableRole.Id))
+            {
+                this._telemetry.TrackEvent($"Allow Assign called with already authorized role assignation on guild {fromRole.Guild.Name}:{fromRole.Guild.Id} for {fromRole.Name}:{fromRole.Id} to assign {assignableRole.Name}:{assignableRole.Id}");
+                return;
+            }
+
+            var newAssignableRole = new UserAssignableRoles(guild, assignableRole, fromRole);
+            await newAssignableRole.InsertAsync();
+        }
+
+        [Command(nameof(Assign))]
+        public async Task Assign(SocketRole targetRole, SocketGuildUser targetUser)
+        {
+            var roleAssignations = await SearchTable<UserAssignableRoles>(uar => uar.PartitionKey == targetRole.Guild.Id.ToString() && uar.TargetRoleStorage == (long)targetRole.Id).GetCollectionAsync();
+
+            if(!roleAssignations.Any())
+            {
+                this._telemetry.TrackEvent($"No existing role assignations for guild {targetRole.Guild.Name}:{targetRole.Guild.Id}");
+                return;
+            }
+
+            var callerRoles = this.Context.Guild.GetUser(this.Context.User.Id)?.Roles;
+            
+            if(callerRoles == null)
+            {
+                this._telemetry.TrackEvent($"Uknown user {targetUser.Nickname}:{targetUser.Id} on guild {targetRole.Guild.Name}:{targetRole.Guild.Id}");
+                return;
+            }
+
+            if(roleAssignations.Any(ra => callerRoles.Select(cr => cr.Id).Contains(ra.FromRoleId)))
+            {
+                await targetUser.AddRoleAsync(targetRole, RequestOptions.Default);
+                return;
+            }
+
+            this._telemetry.TrackEvent($"Role {targetRole.Name}:{targetRole.Id} cannot be assigned by {this.Context.User.Username}# {this.Context.User.Discriminator}:{this.Context.User.Id}, missing role");
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
+        [Command(nameof(RemoveAssign))]
+        public async Task<RuntimeResult> RemoveAssign(SocketRole fromRole, SocketRole assignableRole)
+        {
+            var roles =
+                await SearchTable<UserAssignableRoles>(uar =>
+                    uar.PartitionKey == this.Context.Guild.Id.ToString()
+                    && uar.FromRoleStorage == (long)fromRole.Id
+                    && uar.TargetRoleStorage == (long)assignableRole.Id).GetCollectionAsync();
+
+            if (!roles.Any())
+            {
+                return CommandResult.FromError("No roles to delete");
+            }
+
+            foreach (var role in roles)
+            {
+                await role.DeleteAsync();
+            }
+
+            return CommandResult.FromSuccess();
+        }
+
         [RequireOwner]
         [Command(nameof(Error))]
         public async Task Error()
@@ -255,29 +290,23 @@ namespace DiscordBot.Service.Commands.Modules
 
             this._telemetry.TrackException(ex);
 
+            await Task.CompletedTask;
+
             throw ex;
         }
 
         private async Task BindInternal(SocketRole role, string gameIdent, bool isRegExp)
         {
 
-            var guildsTable = await GetTableAndCreate<Guild>();
-
-            var guildQ = guildsTable.CreateQuery<Guild>().Where(g => g.RowKey == role.Guild.Id.ToString()).Take(1)
-                .AsTableQuery();
-
-            var guild = guildsTable.ExecuteQuery(guildQ).FirstOrDefault();
+            var guild = await SearchTable<Guild>(g => g.RowKey == role.Guild.Id.ToString())
+                .GetOneAsync();
 
             if (guild == null)
             {
                 guild = new Guild(role.Guild);
 
-                var tableOp = TableOperation.Insert(guild);
-
-                await guildsTable.ExecuteAsync(tableOp);
+                await guild.InsertAsync();
             }
-
-            var bindingsTable = await GetTableAndCreate<RoleAssignation>();
 
             await guild.LoadChildrens(g => g.RoleAssignations);
 
@@ -290,7 +319,7 @@ namespace DiscordBot.Service.Commands.Modules
                 nextOrder = lastOrder + 1;
             }
 
-            var insert = new RoleAssignation(guild)
+            var newRoleAssignation = new RoleAssignation(guild)
             {
                 GameName = gameIdent,
                 IsRegExp = isRegExp,
@@ -298,9 +327,7 @@ namespace DiscordBot.Service.Commands.Modules
                 Order = nextOrder
             };
 
-            var insertOp = TableOperation.Insert(insert);
-
-            await bindingsTable.ExecuteAsync(insertOp);
+            await newRoleAssignation.InsertAsync();
         }
 
         private async Task ConsolidateOrder(Guild guild)
@@ -320,7 +347,7 @@ namespace DiscordBot.Service.Commands.Modules
 
             var batch = new TableBatchOperation();
 
-            foreach (var roleAssignation in guild.RoleAssignations.OrderBy(ra => ra.Order))
+            foreach (var roleAssignation in guild.RoleAssignations.OrderBy(ra => ra.Order).ToList())
             {
                 roleAssignation.Order = lastOrder;
 

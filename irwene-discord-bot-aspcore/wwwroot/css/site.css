@@ -71,5 +71,6 @@ body {
 }
 
 .text-discord {
-    color: #7289da !important
+    color: #7289da !important;
+    font-weight: bold !important;
 }

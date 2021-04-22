@@ -31,7 +31,7 @@ namespace DiscordBot.Service.Commands.Modules
 
         [Command("remove")]
         [Summary("Command used to remove a role from the current user")]
-        public async Task Remove(
+        public async Task<RuntimeResult> Remove(
             [Summary("Role to remove, should be one managed by the bot")] SocketRole roleToRemove,
             [Summary("If the bot should remember that the user does not want the role")] bool forever = false)
         {
@@ -45,7 +45,7 @@ namespace DiscordBot.Service.Commands.Modules
                 await guild.InsertAsync();
 
                 //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
-                return;
+                return CommandResult.FromSuccess("Unknown Guild, nothing to do");
             }
 
             var roleBinding =
@@ -55,53 +55,62 @@ namespace DiscordBot.Service.Commands.Modules
 
             if (roleBinding == null)
             {
-                this._telemetry.TrackTrace(
+                var error =
                     $"Bot was asked by user {this.Context.User.Username}#{this.Context.User.Discriminator} to remove the role " +
-                    $"{roleToRemove.Name} which is not managed by this bot for the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
-
-                return;
+                    $"{roleToRemove.Name} which is not managed by this bot for the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})";
+                
+                this._telemetry.TrackTrace(error);
+                return CommandResult.FromError(error);
             }
 
             var user = this.Context.Guild.GetUser(this.Context.User.Id);
 
             if (user == null)
             {
-                this._telemetry.TrackTrace(
-                    $"User {this.Context.User.Username}#{this.Context.User.Discriminator} cannot be found in the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})");
+                var error =
+                    $"User {this.Context.User.Username}#{this.Context.User.Discriminator} cannot be found in the guild {this.Context.Guild.Name} ({this.Context.Guild.Id})";
+                
+                this._telemetry.TrackTrace(error);
 
-                return;
+                return CommandResult.FromError(error);
             }
 
-            await user.RemoveRoleAsync(roleToRemove, new RequestOptions { AuditLogReason = "Requested to the bot by the user" });
+            await user.RemoveRoleAsync(roleToRemove, new RequestOptions { AuditLogReason = $"Requested to the bot by user {this.Context.User.Username}#{this.Context.User.Discriminator}" });
+
+            return CommandResult.FromSuccess();
         }
 
         [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
         [RequireOwner(Group = "Permission")]
         [Command("bind")]
         [Summary("Command used to bind a role to a game name")]
-        public async Task Bind(
+        public async Task<RuntimeResult> Bind(
             [Summary("Role to attribute")] SocketRole role,
             [Summary("Game name to watch for")][Remainder] string gameName)
         {
             await this.BindInternal(role, gameName, false);
+
+            return CommandResult.FromSuccess();
         }
 
         [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
         [RequireOwner(Group = "Permission")]
         [Command("bindr")]
         [Summary("Command used to bind a role as soon as the user presence matches the given regexp")]
-        public async Task BindRegExp(
+        public async Task<RuntimeResult> BindRegExp(
             [Summary("Role to attribute")] SocketRole role,
             [Summary("RegExp to match in the game name")][Remainder] string gameRegExp)
         {
             await this.BindInternal(role, gameRegExp, true);
+
+            return CommandResult.FromSuccess();
         }
 
         [RequireUserPermission(GuildPermission.ManageRoles, Group = "Permission")]
         [RequireOwner(Group = "Permission")]
         [Command("unbind")]
         [Summary("Removes all bindings for a given role")]
-        public async Task Unbind(SocketRole role, int? order = null)
+        public async Task<RuntimeResult> Unbind(SocketRole role, int? order = null)
         {
             var guild = await SearchTable<Guild>(g => g.RowKey == role.Guild.Id.ToString())
                 .GetOneAsync();
@@ -113,7 +122,7 @@ namespace DiscordBot.Service.Commands.Modules
                 await guild.InsertAsync();
 
                 //On vient d'ajouter le serveur (guild) à la liste des serveurs connnus, on a plus rien a faire, puisque aucun binding n'existe
-                return;
+                return CommandResult.FromError("New guild, Nothing to do");
             }
 
             if (!order.HasValue)
@@ -133,6 +142,8 @@ namespace DiscordBot.Service.Commands.Modules
             }
 
             await this.ConsolidateOrder(guild);
+
+            return CommandResult.FromSuccess("New guild, Nothing to do");
         }
 
         [Command("list")]
@@ -207,7 +218,7 @@ namespace DiscordBot.Service.Commands.Modules
 
         [RequireUserPermission(GuildPermission.Administrator, Group = "Permission")]
         [Command(nameof(AllowAssign))]
-        public async Task AllowAssign(SocketRole fromRole, SocketRole assignableRole)
+        public async Task<RuntimeResult> AllowAssign(SocketRole fromRole, SocketRole assignableRole)
         {
             var guild = await SearchTable<Guild>(g => g.RowKey == fromRole.Guild.Id.ToString())
                 .GetOneAsync();
@@ -223,12 +234,17 @@ namespace DiscordBot.Service.Commands.Modules
 
             if (guild.AssignableRoles.Any(ar => ar.FromRoleId == fromRole.Id && ar.TargetRoleId == assignableRole.Id))
             {
-                this._telemetry.TrackEvent($"Allow Assign called with already authorized role assignation on guild {fromRole.Guild.Name}:{fromRole.Guild.Id} for {fromRole.Name}:{fromRole.Id} to assign {assignableRole.Name}:{assignableRole.Id}");
-                return;
+                var error =
+                    $"Allow Assign called with already authorized role assignation on guild {fromRole.Guild.Name}:{fromRole.Guild.Id} for {fromRole.Name}:{fromRole.Id} to assign {assignableRole.Name}:{assignableRole.Id}";
+
+                this._telemetry.TrackEvent(error);
+                return CommandResult.FromError(error);
             }
 
             var newAssignableRole = new UserAssignableRoles(guild, assignableRole, fromRole);
             await newAssignableRole.InsertAsync();
+
+            return CommandResult.FromSuccess();
         }
 
         [Command(nameof(Assign))]
